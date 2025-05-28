@@ -1,0 +1,163 @@
+using MedicalBookingService.Client.Components;
+using MedicalBookingService.Server.Data; // Your DbContext namespace
+using MedicalBookingService.Server.Models; // Your user model namespace
+using MedicalBookingService.Shared.Constants;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
+
+namespace Medical_Appointment_Booking_System
+{
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            // Add services to the container.
+            builder.Services.AddRazorComponents()
+                .AddInteractiveServerComponents();
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddIdentity<AppUser, IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
+
+
+            var app = builder.Build();
+
+            // Configure the HTTP request pipeline.
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Error");
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts();
+            }
+
+            app.UseHttpsRedirection();
+
+            app.UseAntiforgery();
+
+            app.UseStaticFiles();
+
+            app.MapStaticAssets();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+
+            app.MapRazorComponents<App>()
+                .AddInteractiveServerRenderMode();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+                var userManager = services.GetRequiredService<UserManager<AppUser>>();
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+                // Ensure DB is up to date
+                context.Database.Migrate();
+
+                await SeedRolesAsync(roleManager);
+                await SeedDepartmentsAsync(context, userManager, roleManager);
+            }
+
+            app.Run();
+        }
+
+        static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+        {
+            var roles = new[] { "Admin", "Doctor", "Patient" };
+
+            foreach (var role in roles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                    await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+
+        static async Task SeedDepartmentsAsync(ApplicationDbContext context, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
+        {
+            var departments = new[] { "Primary Care", "Pediatrics", "Dental", "Physical Therapy", "Eye Exam" };
+            var random = new Random();
+
+            foreach (var dept in departments)
+            {
+                // Create Office if not exists
+                var office = await context.Offices.FirstOrDefaultAsync(o => o.Name == dept);
+                if (office == null)
+                {
+                    office = new Office { Name = dept };
+                    context.Offices.Add(office);
+                    await context.SaveChangesAsync();
+                }
+
+                // Admin
+                var adminEmail = $"{dept.Replace(" ", "").ToLower()}admin@clinic.com";
+                if (await userManager.FindByEmailAsync(adminEmail) == null)
+                {
+                    var adminUser = new AppUser
+                    {
+                        UserName = adminEmail,
+                        Email = adminEmail,
+                        EmailConfirmed = true,
+                        Role = "Admin",
+                        OfficeId = office.Id
+                    };
+
+                    await userManager.CreateAsync(adminUser, "Admin123!");
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
+
+                    var adminProfile = new AdminProfile
+                    {
+                        AppUserId = adminUser.Id,
+                        FirstName = "Admin",
+                        LastName = dept,
+                        OfficeId = office.Id
+                    };
+
+                    context.AdminProfiles.Add(adminProfile);
+                    await context.SaveChangesAsync();
+                }
+
+                // 3 Doctors
+                for (int i = 1; i <= 3; i++)
+                {
+                    var docEmail = $"{dept.Replace(" ", "").ToLower()}doc{i}@clinic.com";
+                    if (await userManager.FindByEmailAsync(docEmail) == null)
+                    {
+                        var docUser = new AppUser
+                        {
+                            UserName = docEmail,
+                            Email = docEmail,
+                            EmailConfirmed = true,
+                            Role = "Doctor",
+                            OfficeId = office.Id
+                        };
+
+                        await userManager.CreateAsync(docUser, "Doctor123!");
+                        await userManager.AddToRoleAsync(docUser, "Doctor");
+
+                        var doctorProfile = new DoctorProfile
+                        {
+                            AppUserId = docUser.Id,
+                            FirstName = $"Dr{i}",
+                            LastName = dept.Replace(" ", ""),
+                            Specialty = dept,
+                            OfficeId = office.Id
+                        };
+
+                        context.DoctorProfiles.Add(doctorProfile);
+                        await context.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+
+
+    }
+}
