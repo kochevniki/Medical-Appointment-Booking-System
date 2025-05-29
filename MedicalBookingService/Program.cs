@@ -22,10 +22,25 @@ namespace Medical_Appointment_Booking_System
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddIdentity<AppUser, IdentityRole>()
+            builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+            {
+                options.SignIn.RequireConfirmedAccount = false;
+            })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+            builder.Services.AddControllers(); // <-- This registers API controllers
+
+            builder.Services.AddHttpClient();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.LoginPath = "/Login";
+                options.AccessDeniedPath = "/AccessDenied";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.None; // Important for SPA and cross-page POSTs
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use .Always in production
+            });
 
             var app = builder.Build();
 
@@ -44,30 +59,30 @@ namespace Medical_Appointment_Booking_System
             app.UseStaticFiles();
 
             app.MapStaticAssets();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapRazorComponents<App>()
                 .AddInteractiveServerRenderMode();
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                var context = services.GetRequiredService<ApplicationDbContext>();
-                var userManager = services.GetRequiredService<UserManager<AppUser>>();
-                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-                // Ensure DB is up to date
-                context.Database.Migrate();
-
-                await SeedRolesAsync(roleManager);
-                await SeedDepartmentsAsync(context, userManager, roleManager);
-            }
+            app.MapControllers(); // <-- This maps the controller routes
 
             app.Run();
         }
+
+        //using (var scope = app.Services.CreateScope())
+        //{
+        //    var services = scope.ServiceProvider;
+        //    var context = services.GetRequiredService<ApplicationDbContext>();
+        //    var userManager = services.GetRequiredService<UserManager<AppUser>>();
+        //    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        //    // Ensure DB is up to date
+        //    context.Database.Migrate();
+
+        //    await SeedRolesAsync(roleManager);
+        //    await SeedDepartmentsAsync(context, userManager, roleManager);
+        //}
 
         static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
         {

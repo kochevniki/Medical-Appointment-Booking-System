@@ -1,13 +1,14 @@
-﻿@inherits LayoutComponentBase
+﻿@inject NavigationManager Navigation
+@inherits LayoutComponentBase
 
-<NavMenu />
+@if (!Navigation.Uri.Contains("/Login"))
+{
+    <NavMenu />
+}
+<CascadingAuthenticationState>
 
-<div class="container mt-4">
-    @Body
-</div>
+    <div class="container mt-4">
+        @Body
+    </div>
+</CascadingAuthenticationState>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>

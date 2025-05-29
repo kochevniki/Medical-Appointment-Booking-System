@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedicalBookingService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250528010958_AddOfficeToProfiles")]
-    partial class AddOfficeToProfiles
+    [Migration("20250528154442_NewMigration")]
+    partial class NewMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

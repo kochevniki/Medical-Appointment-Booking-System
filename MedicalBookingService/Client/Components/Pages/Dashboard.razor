@@ -1,0 +1,58 @@
+﻿@page "/Dashboard"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using MedicalBookingService.Server.Models
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<AppUser> UserManager
+@inject NavigationManager Navigation
+
+<h3>Dashboard</h3>
+
+@if (isAuthenticated)
+{
+    <p>User is authenticated.</p>
+    @if (userRoles.Contains("Admin"))
+    {
+        <p>Welcome Admin! You can manage appointments.</p>
+    }
+    else if (userRoles.Contains("Doctor"))
+    {
+        <p>Welcome Doctor! You can view your schedule.</p>
+    }
+    else if (userRoles.Contains("Patient"))
+    {
+        <p>Welcome Patient! You can request an appointment.</p>
+    }
+    else
+    {
+        <p>Unknown role.</p>
+    }
+}
+else
+{
+    <p>User is NOT authenticated.</p>
+}
+
+@code {
+    private bool isAuthenticated = false;
+    private List<string> userRoles = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+        Console.WriteLine($"Is Authenticated on Dashboard: {isAuthenticated}");
+
+        if (isAuthenticated)
+        {
+            var appUser = await UserManager.GetUserAsync(user);
+            if (appUser != null)
+            {
+                userRoles = (await UserManager.GetRolesAsync(appUser)).ToList();
+                Console.WriteLine($"User Roles: {string.Join(", ", userRoles)}");
+            }
+        }
+    }
+}

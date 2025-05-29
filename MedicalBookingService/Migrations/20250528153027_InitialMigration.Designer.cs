@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedicalBookingService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250527162004_InitWithUserProfiles")]
-    partial class InitWithUserProfiles
+    [Migration("20250528153027_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,10 +45,15 @@ namespace MedicalBookingService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OfficeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AppUserId")
                         .IsUnique();
+
+                    b.HasIndex("OfficeId");
 
                     b.ToTable("AdminProfiles");
                 });
@@ -147,6 +152,9 @@ namespace MedicalBookingService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("OfficeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Specialty")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -155,6 +163,8 @@ namespace MedicalBookingService.Migrations
 
                     b.HasIndex("AppUserId")
                         .IsUnique();
+
+                    b.HasIndex("OfficeId");
 
                     b.ToTable("DoctorProfiles");
                 });
@@ -295,10 +305,12 @@ namespace MedicalBookingService.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -335,10 +347,12 @@ namespace MedicalBookingService.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -356,7 +370,15 @@ namespace MedicalBookingService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MedicalBookingService.Server.Models.Office", "Office")
+                        .WithMany()
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("AppUser");
+
+                    b.Navigation("Office");
                 });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.AppUser", b =>
@@ -377,7 +399,15 @@ namespace MedicalBookingService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MedicalBookingService.Server.Models.Office", "Office")
+                        .WithMany()
+                        .HasForeignKey("OfficeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("AppUser");
+
+                    b.Navigation("Office");
                 });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.PatientProfile", b =>

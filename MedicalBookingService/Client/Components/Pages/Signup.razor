@@ -1,0 +1,72 @@
+﻿@page "/Signup"
+@using Microsoft.AspNetCore.Identity
+@using MedicalBookingService.Server.Models
+@using MedicalBookingService.Server.Data
+@using System.ComponentModel.DataAnnotations
+@inject UserManager<AppUser> UserManager
+@inject SignInManager<AppUser> SignInManager
+@inject NavigationManager Navigation
+
+<h3>Sign Up (Patient)</h3>
+
+<EditForm Model="_model" OnValidSubmit="HandleSignup">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <InputText @bind-Value="_model.Email" placeholder="Email" class="form-control" />
+    <InputText @bind-Value="_model.Password" type="password" placeholder="Password" class="form-control" />
+    <InputText @bind-Value="_model.FirstName" placeholder="First Name" class="form-control" />
+    <InputText @bind-Value="_model.LastName" placeholder="Last Name" class="form-control" />
+
+    <button type="submit">Sign Up</button>
+</EditForm>
+
+@code {
+    private PatientSignupModel _model = new();
+
+    private async Task HandleSignup()
+    {
+        var user = new AppUser
+        {
+            UserName = _model.Email,
+            Email = _model.Email,
+            EmailConfirmed = true,
+            Role = "Patient"
+        };
+
+        var result = await UserManager.CreateAsync(user, _model.Password);
+        if (result.Succeeded)
+        {
+            await UserManager.AddToRoleAsync(user, "Patient");
+
+            var profile = new PatientProfile
+            {
+                AppUserId = user.Id,
+                FirstName = _model.FirstName,
+                LastName = _model.LastName,
+                DateOfBirth = DateTime.Now, // replace with input
+                SSN = "000-00-0000",         // placeholder
+                Address = "N/A"
+            };
+
+            using var scope = UserManager as IDisposable;
+            var db = scope != null ? scope as ApplicationDbContext : null;
+            if (db != null)
+            {
+                db.PatientProfiles.Add(profile);
+                await db.SaveChangesAsync();
+            }
+
+            await SignInManager.SignInAsync(user, isPersistent: true);
+            Navigation.NavigateTo("/Dashboard");
+        }
+    }
+
+    public class PatientSignupModel
+    {
+        [Required] public string Email { get; set; }
+        [Required] public string Password { get; set; }
+        [Required] public string FirstName { get; set; }
+        [Required] public string LastName { get; set; }
+    }
+}

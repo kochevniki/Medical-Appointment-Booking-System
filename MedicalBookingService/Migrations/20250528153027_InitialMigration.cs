@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MedicalBookingService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitWithUserProfiles : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -100,7 +100,8 @@ namespace MedicalBookingService.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OfficeId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -109,6 +110,12 @@ namespace MedicalBookingService.Migrations
                         name: "FK_AdminProfiles_AspNetUsers_AppUserId",
                         column: x => x.AppUserId,
                         principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AdminProfiles_Offices_OfficeId",
+                        column: x => x.OfficeId,
+                        principalTable: "Offices",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -138,8 +145,8 @@ namespace MedicalBookingService.Migrations
                 name: "AspNetUserLogins",
                 columns: table => new
                 {
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    ProviderKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
@@ -183,8 +190,8 @@ namespace MedicalBookingService.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
@@ -207,7 +214,8 @@ namespace MedicalBookingService.Migrations
                     AppUserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Specialty = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Specialty = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OfficeId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -216,6 +224,12 @@ namespace MedicalBookingService.Migrations
                         name: "FK_DoctorProfiles_AspNetUsers_AppUserId",
                         column: x => x.AppUserId,
                         principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DoctorProfiles_Offices_OfficeId",
+                        column: x => x.OfficeId,
+                        principalTable: "Offices",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -249,6 +263,11 @@ namespace MedicalBookingService.Migrations
                 table: "AdminProfiles",
                 column: "AppUserId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdminProfiles_OfficeId",
+                table: "AdminProfiles",
+                column: "OfficeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -299,6 +318,11 @@ namespace MedicalBookingService.Migrations
                 table: "DoctorProfiles",
                 column: "AppUserId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorProfiles_OfficeId",
+                table: "DoctorProfiles",
+                column: "OfficeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PatientProfiles_AppUserId",

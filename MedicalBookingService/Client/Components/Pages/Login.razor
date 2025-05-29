@@ -1,0 +1,53 @@
+﻿@page "/login"
+@using MedicalBookingService.Server.Models.DTOs
+@inject HttpClient Http
+@inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>Login</h3>
+
+<EditForm Model="@_loginModel" OnValidSubmit="HandleLogin" FormName="LoginForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger">@_errorMessage</div>
+    }
+
+    <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <InputText id="email" @bind-Value="_loginModel.Email" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <InputText id="password" @bind-Value="_loginModel.Password" type="password" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+
+@code {
+    private LoginDto _loginModel = new();
+    private string _errorMessage;
+
+    private async Task HandleLogin()
+    {
+
+        //add cookies
+
+        var response = await Http.PostAsJsonAsync("https://localhost:7136/api/auth/login", _loginModel);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo("/Dashboard", forceLoad: true);
+        }
+        else
+        {
+            _errorMessage = "Invalid Credentials";
+        }
+
+    }
+}
