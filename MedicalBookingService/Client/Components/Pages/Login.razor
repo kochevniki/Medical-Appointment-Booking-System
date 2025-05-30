@@ -1,53 +1,61 @@
 ﻿@page "/login"
-@using MedicalBookingService.Server.Models.DTOs
-@inject HttpClient Http
-@inject IHttpContextAccessor HttpContextAccessor
-@inject NavigationManager Navigation
-@rendermode InteractiveServer
+@using MedicalBookingService.Client.Components
 
 <h3>Login</h3>
 
-<EditForm Model="@_loginModel" OnValidSubmit="HandleLogin" FormName="LoginForm">
-    <DataAnnotationsValidator />
-    <ValidationSummary class="text-danger" />
+<LoadingSpinner Id="loader" />
 
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <div class="alert alert-danger">@_errorMessage</div>
-    }
+<form id="loginForm">
+    <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
     <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <InputText id="email" @bind-Value="_loginModel.Email" class="form-control" />
+        <input id="email" name="email" type="email" class="form-control" required />
     </div>
 
     <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <InputText id="password" @bind-Value="_loginModel.Password" type="password" class="form-control" />
+        <input id="password" name="password" type="password" class="form-control" required />
     </div>
 
     <button type="submit" class="btn btn-primary">Login</button>
-</EditForm>
+</form>
 
-@code {
-    private LoginDto _loginModel = new();
-    private string _errorMessage;
+<script>
+    document.getElementById("loginForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
 
-    private async Task HandleLogin()
-    {
+        // Show loader and lock page interaction
+        const loader = document.getElementById("loader");
+        loader.style.display = "flex";
+        document.body.classList.add("spinner-active");
 
-        //add cookies
+        const formData = {
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value
+        };
 
-        var response = await Http.PostAsJsonAsync("https://localhost:7136/api/auth/login", _loginModel);
+        try {
+            const response = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData)
+            });
 
-        if (response.IsSuccessStatusCode)
-        {
-            Navigation.NavigateTo("/Dashboard", forceLoad: true);
+            if (response.ok) {
+                window.location.href = "/Dashboard";
+            } else {
+                document.getElementById("errorMessage").textContent = "Invalid Credentials";
+                document.getElementById("errorMessage").style.display = "block";
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            document.getElementById("errorMessage").textContent = "Something went wrong. Please try again.";
+            document.getElementById("errorMessage").style.display = "block";
+        } finally {
+            // Hide loader and unlock interaction
+            loader.style.display = "none";
+            document.body.classList.remove("spinner-active");
         }
-        else
-        {
-            _errorMessage = "Invalid Credentials";
-        }
-
-    }
-}
+    });
+</script>

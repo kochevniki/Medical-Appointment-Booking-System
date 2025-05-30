@@ -28,19 +28,6 @@ public class AuthController : ControllerBase
         var result = await _signInManager.PasswordSignInAsync(
             user.UserName, model.Password, isPersistent: false, lockoutOnFailure: false);
 
-        Response.Cookies.Append("TestCookie", "HelloWorld", new CookieOptions
-        {
-            Path = "/",
-            HttpOnly = true,
-            Secure = true, // Required for SameSite=None
-            SameSite = SameSiteMode.None, // Allows cross-site cookies
-            IsEssential = true,
-            Expires = DateTime.UtcNow.AddDays(7)
-        });
-
-
-
-
         if (result.Succeeded)
         {
             return Ok();
