@@ -40,6 +40,12 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Logout()
     {
         await _signInManager.SignOutAsync();
+        var cookieOptions = new CookieOptions
+        {
+            Path = "/",
+            Secure = true
+        };
+        Response.Cookies.Delete(".AspNetCore.Identity.Application", cookieOptions);
         return Ok();
     }
 }

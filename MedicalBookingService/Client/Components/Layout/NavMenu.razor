@@ -1,4 +1,11 @@
-﻿<nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
+﻿@rendermode InteractiveServer
+@inject MedicalBookingService.Shared.Services.AuthService AuthService
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+
+<nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="/">Medical System</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor01"
@@ -23,7 +30,36 @@
                         Weather
                     </NavLink>
                 </li>
+                @if(AuthService.IsAuthenticated)
+                {
+                    <li class="nav-item">
+                        <button class="btn btn-danger" @onclick="PerformLogout">
+                            Logout
+                        </button>
+                    </li>
+				}
             </ul>
         </div>
     </div>
 </nav>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            await AuthService.InitializeAsync();
+        }
+    }
+
+    private async Task PerformLogout()
+    {
+        await JS.InvokeVoidAsync("fetch", "/api/auth/logout", new
+        {
+            method = "POST",
+            credentials = "include"
+        });
+        
+        await JS.InvokeVoidAsync("location.reload");
+    }
+}

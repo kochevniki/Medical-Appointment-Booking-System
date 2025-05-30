@@ -2,6 +2,7 @@ using MedicalBookingService.Client.Components;
 using MedicalBookingService.Server.Data; // Your DbContext namespace
 using MedicalBookingService.Server.Models; // Your user model namespace
 using MedicalBookingService.Shared.Constants;
+using MedicalBookingService.Shared.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,18 +29,14 @@ namespace Medical_Appointment_Booking_System
             })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
-
+            builder.Services.AddScoped<AuthService>();
             builder.Services.AddControllers(); // <-- This registers API controllers
-
             builder.Services.AddHttpClient();
-
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.LoginPath = "/Login";
                 options.AccessDeniedPath = "/AccessDenied";
                 options.Cookie.HttpOnly = true;
-                options.Cookie.SameSite = SameSiteMode.None; // Important for SPA and cross-page POSTs
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Use .Always in production
             });
 
             var app = builder.Build();

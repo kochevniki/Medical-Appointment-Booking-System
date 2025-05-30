@@ -1,11 +1,15 @@
 ﻿@page "/login"
-@using MedicalBookingService.Client.Components
+@rendermode InteractiveServer
+@inject MedicalBookingService.Shared.Services.AuthService AuthService
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject HttpClient Http
 
 <h3>Login</h3>
 
 <LoadingSpinner Id="loader" />
 
-<form id="loginForm">
+<form @onsubmit="HandleLogin">
     <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
     <div class="mb-3">
@@ -21,41 +25,48 @@
     <button type="submit" class="btn btn-primary">Login</button>
 </form>
 
-<script>
-    document.getElementById("loginForm").addEventListener("submit", async function (event) {
-        event.preventDefault();
+@code {
+    private async Task HandleLogin()
+    {
+        await JS.InvokeVoidAsync("startSpinner");
 
-        // Show loader and lock page interaction
-        const loader = document.getElementById("loader");
-        loader.style.display = "flex";
-        document.body.classList.add("spinner-active");
+        var email = await JS.InvokeAsync<string>("getInputValue", "email");
+        var password = await JS.InvokeAsync<string>("getInputValue", "password");
 
-        const formData = {
-            email: document.getElementById("email").value,
-            password: document.getElementById("password").value
+        var payload = new
+        {
+            Email = email,
+            Password = password
         };
 
-        try {
-            const response = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData)
-            });
 
-            if (response.ok) {
-                window.location.href = "/Dashboard";
-            } else {
-                document.getElementById("errorMessage").textContent = "Invalid Credentials";
-                document.getElementById("errorMessage").style.display = "block";
+        try
+        {
+            var result = await JS.InvokeAsync<LoginResponse>("loginFunctionApi", email, password);
+
+            if (result.Status == 200 || result.Status == 201)
+            {
+                await AuthService.InitializeAsync();
+                Navigation.NavigateTo("/Dashboard", forceLoad: true);
             }
-        } catch (error) {
-            console.error("Login error:", error);
-            document.getElementById("errorMessage").textContent = "Something went wrong. Please try again.";
-            document.getElementById("errorMessage").style.display = "block";
-        } finally {
-            // Hide loader and unlock interaction
-            loader.style.display = "none";
-            document.body.classList.remove("spinner-active");
+            else
+            {
+                await JS.InvokeVoidAsync("showErrorMessage", "Invalid credentials.");
+            }
         }
-    });
-</script>
+        catch
+        {
+            await JS.InvokeVoidAsync("showErrorMessage", "Something went wrong. Please try again.");
+        }
+        finally
+        {
+            await JS.InvokeVoidAsync("stopSpinner");
+        }
+    }
+
+    private class LoginResponse
+    {
+        public int Status { get; set; }
+        public string Data { get; set; } = string.Empty;
+    }
+}
