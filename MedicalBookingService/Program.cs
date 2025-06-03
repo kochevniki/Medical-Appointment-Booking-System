@@ -1,8 +1,10 @@
 using MedicalBookingService.Client.Components;
 using MedicalBookingService.Server.Data; // Your DbContext namespace
 using MedicalBookingService.Server.Models; // Your user model namespace
+using MedicalBookingService.Server.Services;
 using MedicalBookingService.Shared.Constants;
 using MedicalBookingService.Shared.Services;
+using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,13 +25,27 @@ namespace Medical_Appointment_Booking_System
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+            builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+            {
+                options.TokenLifespan = TimeSpan.FromHours(1);
+            });
+
             builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
             {
-                options.SignIn.RequireConfirmedAccount = false;
+                options.SignIn.RequireConfirmedAccount = true;
             })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
             builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<EmailService>();
+            builder.Services.AddScoped<FileService>();
+
+            builder.Services.Configure<CircuitOptions>(options =>
+            {
+                options.DetailedErrors = true;
+            });
+
+
             builder.Services.AddControllers(); // <-- This registers API controllers
             builder.Services.AddHttpClient();
             builder.Services.ConfigureApplicationCookie(options =>
@@ -56,6 +72,19 @@ namespace Medical_Appointment_Booking_System
             app.UseStaticFiles();
 
             app.MapStaticAssets();
+
+
+            //app.Use(async (context, next) =>
+            //{
+            //    foreach (var cookie in context.Request.Cookies.Keys)
+            //    {
+            //        context.Response.Cookies.Delete(cookie);
+            //    }
+
+            //    await next();
+            //});
+
+
             app.UseAuthentication();
             app.UseAuthorization();
 

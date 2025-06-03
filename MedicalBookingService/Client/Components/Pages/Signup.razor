@@ -1,72 +1,212 @@
-﻿@page "/Signup"
-@using Microsoft.AspNetCore.Identity
-@using MedicalBookingService.Server.Models
-@using MedicalBookingService.Server.Data
-@using System.ComponentModel.DataAnnotations
-@inject UserManager<AppUser> UserManager
-@inject SignInManager<AppUser> SignInManager
+﻿@page "/signup"
+@rendermode InteractiveServer
+@inject HttpClient Http
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@using MedicalBookingService.Shared.Models
+@using System.Net.Http.Json
 
 <h3>Sign Up (Patient)</h3>
+
+<LoadingSpinner Id="loader" />
+
+@if (!string.IsNullOrEmpty(_successMessage))
+{
+    <div class="alert alert-success">@_successMessage</div>
+}
 
 <EditForm Model="_model" OnValidSubmit="HandleSignup">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
-    <InputText @bind-Value="_model.Email" placeholder="Email" class="form-control" />
-    <InputText @bind-Value="_model.Password" type="password" placeholder="Password" class="form-control" />
-    <InputText @bind-Value="_model.FirstName" placeholder="First Name" class="form-control" />
-    <InputText @bind-Value="_model.LastName" placeholder="Last Name" class="form-control" />
+    <div class="mb-3">
+        <label>Email</label>
+        <InputText @bind-Value="_model.Email" class="form-control" />
+        <small class="text-muted">Email will have to be verified in order to login.</small>
+    </div>
 
-    <button type="submit">Sign Up</button>
+    <div class="mb-3">
+        <label>Password</label>
+        <InputText @bind-Value="_model.Password" type="password" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Confirm Password</label>
+        <InputText @bind-Value="_model.ConfirmPassword" type="password" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>First Name</label>
+        <InputText @bind-Value="_model.FirstName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Last Name</label>
+        <InputText @bind-Value="_model.LastName" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>SSN</label>
+        <InputText @bind-Value="_model.SSN" id="SSN" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Confirm SSN</label>
+        <InputText @bind-Value="_model.ConfirmSSN" id="ConfirmSSN" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Date of Birth</label>
+        <InputDate @bind-Value="_model.DateOfBirth" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Address</label>
+        <InputText @bind-Value="_model.Address" id="usps-address" class="form-control" />
+        <small class="text-muted">Start typing to get Google address suggestions.</small>
+    </div>
+
+    <div class="mb-3">
+        <label>Upload Government ID (optional)</label>
+        <InputFile OnChange="StoreGovIdFile" accept=".jpg,.jpeg,.png,.pdf" />
+    </div>
+
+    <div class="mb-3">
+        <label>Upload Insurance Card (optional)</label>
+        <InputFile OnChange="StoreInsuranceCardFile" accept=".jpg,.jpeg,.png,.pdf" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Sign Up</button>
 </EditForm>
+
+@if (_errorMessage != null)
+{
+    <div class="alert alert-danger mt-2">@_errorMessage</div>
+}
 
 @code {
     private PatientSignupModel _model = new();
+    private string? _errorMessage;
+    private string _successMessage = string.Empty;
 
-    private async Task HandleSignup()
+    private IBrowserFile? _govIdFile;
+    private IBrowserFile? _insuranceCardFile;
+
+    protected override void OnInitialized()
     {
-        var user = new AppUser
+        _model.DateOfBirth = DateTime.Today;
+    }
+
+    private void StoreGovIdFile(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (IsAllowedFileType(file))
         {
-            UserName = _model.Email,
-            Email = _model.Email,
-            EmailConfirmed = true,
-            Role = "Patient"
-        };
-
-        var result = await UserManager.CreateAsync(user, _model.Password);
-        if (result.Succeeded)
+            _govIdFile = file;
+        }
+        else
         {
-            await UserManager.AddToRoleAsync(user, "Patient");
-
-            var profile = new PatientProfile
-            {
-                AppUserId = user.Id,
-                FirstName = _model.FirstName,
-                LastName = _model.LastName,
-                DateOfBirth = DateTime.Now, // replace with input
-                SSN = "000-00-0000",         // placeholder
-                Address = "N/A"
-            };
-
-            using var scope = UserManager as IDisposable;
-            var db = scope != null ? scope as ApplicationDbContext : null;
-            if (db != null)
-            {
-                db.PatientProfiles.Add(profile);
-                await db.SaveChangesAsync();
-            }
-
-            await SignInManager.SignInAsync(user, isPersistent: true);
-            Navigation.NavigateTo("/Dashboard");
+            _errorMessage = "Invalid file type for Government ID. Only JPG, JPEG, PNG, and PDF are allowed.";
         }
     }
 
-    public class PatientSignupModel
+    private void StoreInsuranceCardFile(InputFileChangeEventArgs e)
     {
-        [Required] public string Email { get; set; }
-        [Required] public string Password { get; set; }
-        [Required] public string FirstName { get; set; }
-        [Required] public string LastName { get; set; }
+        var file = e.File;
+        if (IsAllowedFileType(file))
+        {
+            _insuranceCardFile = file;
+        }
+        else
+        {
+            _errorMessage = "Invalid file type for Insurance Card. Only JPG, JPEG, PNG, and PDF are allowed.";
+        }
+    }
+
+    private async Task HandleSignup()
+    {
+        await JS.InvokeVoidAsync("startSpinner");
+        _errorMessage = null;
+
+        try
+        {
+            // Upload files first
+            if (_govIdFile != null)
+                _model.GovernmentIdUrl = await UploadFileAsync(_govIdFile);
+
+            if (_insuranceCardFile != null)
+                _model.InsuranceCardUrl = await UploadFileAsync(_insuranceCardFile);
+
+            // Send signup data
+            var response = await Http.PostAsJsonAsync("https://localhost:7136/api/account/signup", _model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _successMessage = "Signup successful. Please check your email to confirm your account.";
+                await Task.Delay(3000);
+                Navigation.NavigateTo("/login");
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                _errorMessage = "An account with this email already exists.";
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _errorMessage = $"Signup failed: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            await JS.InvokeVoidAsync("stopSpinner");
+        }
+    }
+
+    private bool IsAllowedFileType(IBrowserFile file)
+    {
+        var allowed = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+        return allowed.Contains(ext);
+    }
+
+    private async Task<string?> UploadFileAsync(IBrowserFile file)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var stream = file.OpenReadStream(10 * 1024 * 1024); // 10MB max
+            content.Add(new StreamContent(stream), "file", file.Name);
+
+            var response = await Http.PostAsync("https://localhost:7136/api/file/upload", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadResult>();
+                return result?.Url;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to upload file {file.Name}: {ex.Message}";
+        }
+
+        return null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("signupEnhancements.initSSNFields");
+            await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete");
+        }
+    }
+
+    class UploadResult
+    {
+        public string Url { get; set; } = string.Empty;
     }
 }

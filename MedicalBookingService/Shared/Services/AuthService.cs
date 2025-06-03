@@ -1,6 +1,8 @@
-﻿using MedicalBookingService.Server.Models;
+﻿using MedicalBookingService.Server.Data;
+using MedicalBookingService.Server.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace MedicalBookingService.Shared.Services
 {
@@ -8,6 +10,7 @@ namespace MedicalBookingService.Shared.Services
     {
         private readonly AuthenticationStateProvider _authStateProvider;
         private readonly UserManager<AppUser> _userManager;
+        private readonly ApplicationDbContext _context;
         public bool IsInitialized { get; private set; } = false;
         public event Action? OnChange;
         private void NotifyStateChanged() => OnChange?.Invoke();
@@ -16,11 +19,12 @@ namespace MedicalBookingService.Shared.Services
         public List<string> UserRoles { get; private set; } = new();
         private readonly ILogger<AuthService> _logger;
 
-        public AuthService(AuthenticationStateProvider authStateProvider, UserManager<AppUser> userManager, ILogger<AuthService> logger)
+        public AuthService(AuthenticationStateProvider authStateProvider, UserManager<AppUser> userManager, ILogger<AuthService> logger, ApplicationDbContext context)
         {
             _authStateProvider = authStateProvider;
             _userManager = userManager;
             _logger = logger;
+            _context = context;
         }
 
         public async Task InitializeAsync()
@@ -36,7 +40,12 @@ namespace MedicalBookingService.Shared.Services
 
                 if (!string.IsNullOrEmpty(userId))
                 {
-                    CurrentUser = await _userManager.FindByIdAsync(userId);
+                    //CurrentUser = await _userManager.FindByIdAsync(userId);
+                    CurrentUser = await _context.Users
+                      .Include(u => u.PatientProfile)
+                      .Include(u => u.DoctorProfile)
+                      .Include(u => u.AdminProfile)
+                      .FirstOrDefaultAsync(u => u.Id == userId);
                 }
 
                 if (CurrentUser != null)

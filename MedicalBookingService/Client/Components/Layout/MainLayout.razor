@@ -1,10 +1,8 @@
 ﻿@inject NavigationManager Navigation
 @inherits LayoutComponentBase
 
-@if (!Navigation.Uri.Contains("/Login"))
-{
-    <NavMenu />
-}
+<NavMenu />
+
 <CascadingAuthenticationState>
 
     <div class="container mt-4">

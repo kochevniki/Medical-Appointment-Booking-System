@@ -12,5 +12,8 @@
         public DateTime DateOfBirth { get; set; }
         public string SSN { get; set; }
         public string Address { get; set; }
+
+        public string? GovernmentIdUrl { get; set; }
+        public string? InsuranceCardUrl { get; set; }
     }
 }

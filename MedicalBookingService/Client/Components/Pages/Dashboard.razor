@@ -16,9 +16,17 @@ else if (AuthService.IsAuthenticated)
     {
         <p>Welcome Admin! You can manage appointments.</p>
     }
-    else if (AuthService.UserRoles.Contains("Doctor"))
+    else if (AuthService.UserRoles.Contains("Doctor") && AuthService.CurrentUser?.DoctorProfile != null)
     {
-        <p>Welcome Doctor! You can view your schedule.</p>
+        if (AuthService.CurrentUser.DoctorProfile.OfficeId == 1)
+        {
+            <p>Welcome Primary Care Doctor! You can view your schedule.</p>
+        }
+        else
+        {
+            <p>Welcome Doctor! You can view your schedule.</p>
+        }
+        
     }
     else if (AuthService.UserRoles.Contains("Patient"))
     {
