@@ -1,9 +1,11 @@
 ﻿using MedicalBookingService.Server.Data;
 using MedicalBookingService.Server.Models;
-using MedicalBookingService.Shared.Models;
 using MedicalBookingService.Server.Services;
+using MedicalBookingService.Shared.Models;
+using MedicalBookingService.Shared.Models.DTOs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 namespace MedicalBookingService.Server.Controllers
 {
     [Route("api/[controller]")]
@@ -60,19 +62,22 @@ namespace MedicalBookingService.Server.Controllers
             _db.PatientProfiles.Add(profile);
             await _db.SaveChangesAsync();
 
-            //// Generate email confirmation token
-            //var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            //var confirmationLink = Url.Action(
-            //    "ConfirmEmail", "Account",
-            //    new { userId = user.Id, token },
-            //    protocol: HttpContext.Request.Scheme);
+           // // Generate email confirmation token
+           // var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+           // var confirmationLink = Url.Action(
+           //     "ConfirmEmail", "Account",
+           //     new { userId = user.Id, token },
+           //     protocol: HttpContext.Request.Scheme);
 
-            // Send confirmation email
-            //var body = $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>Confirm Email</a>";
-            //await _emailService.SendEmailAsync(user.Email, "Confirm your email", body);
+           //// Send confirmation email
+           //var body = $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>Confirm Email</a>";
+           // await _emailService.SendEmailAsync(user.Email, "Confirm your email to register your account", body);
 
             //return Ok("Signup successful. Please check your email to confirm your account.");
-            return Ok();
+            return Ok(new
+            {
+                UserId = user.Id
+            });
         }
 
         [HttpGet("confirm-email")]
@@ -87,6 +92,23 @@ namespace MedicalBookingService.Server.Controllers
             else
                 return BadRequest("Email confirmation failed.");
         }
+
+        [HttpPost("update-file-urls")]
+        public async Task<IActionResult> UpdateFileUrls([FromBody] FileUrlsUpdateModel model)
+        {
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return NotFound();
+
+            var patientProfile = await _db.PatientProfiles.FirstOrDefaultAsync(p => p.AppUserId == user.Id);
+            if (patientProfile == null) return NotFound();
+
+            patientProfile.GovernmentIdUrl = model.GovernmentIdUrl;
+            patientProfile.InsuranceCardUrl = model.InsuranceCardUrl;
+            await _db.SaveChangesAsync();
+
+            return Ok();
+        }
+
 
     }
 }

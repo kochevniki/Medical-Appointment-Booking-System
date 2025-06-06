@@ -5,6 +5,8 @@
 @inject IJSRuntime JS
 @using MedicalBookingService.Shared.Models
 @using System.Net.Http.Json
+@using MedicalBookingService.Shared.Models.DTOs
+@inject ILogger<Signup> _logger
 
 <h3>Sign Up (Patient)</h3>
 
@@ -130,19 +132,28 @@
 
         try
         {
-            // Upload files first
-            if (_govIdFile != null)
-                _model.GovernmentIdUrl = await UploadFileAsync(_govIdFile);
-
-            if (_insuranceCardFile != null)
-                _model.InsuranceCardUrl = await UploadFileAsync(_insuranceCardFile);
-
             // Send signup data
             var response = await Http.PostAsJsonAsync("https://localhost:7136/api/account/signup", _model);
 
             if (response.IsSuccessStatusCode)
             {
                 _successMessage = "Signup successful. Please check your email to confirm your account.";
+                var signupData = await response.Content.ReadFromJsonAsync<SignupResponse>();
+                if (_govIdFile != null && signupData.UserId != null)
+                    _model.GovernmentIdUrl = await UploadFileAsync(_govIdFile, signupData.UserId);
+
+                if (_insuranceCardFile != null && signupData.UserId != null)
+                    _model.InsuranceCardUrl = await UploadFileAsync(_insuranceCardFile, signupData.UserId);
+
+                var fileUpdateModel = new FileUrlsUpdateModel
+                {
+                    UserId = signupData.UserId,
+                    GovernmentIdUrl = _model.GovernmentIdUrl,
+                    InsuranceCardUrl = _model.InsuranceCardUrl
+                };
+
+                await Http.PostAsJsonAsync("https://localhost:7136/api/account/update-file-urls", fileUpdateModel);
+
                 await Task.Delay(3000);
                 Navigation.NavigateTo("/login");
             }
@@ -173,13 +184,15 @@
         return allowed.Contains(ext);
     }
 
-    private async Task<string?> UploadFileAsync(IBrowserFile file)
+    private async Task<string?> UploadFileAsync(IBrowserFile file, string userId)
     {
         try
         {
             using var content = new MultipartFormDataContent();
             var stream = file.OpenReadStream(10 * 1024 * 1024); // 10MB max
             content.Add(new StreamContent(stream), "file", file.Name);
+            content.Add(new StringContent(userId), "userId");
+            _logger.LogInformation($"folderId: {userId}");
 
             var response = await Http.PostAsync("https://localhost:7136/api/file/upload", content);
             if (response.IsSuccessStatusCode)

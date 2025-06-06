@@ -13,6 +13,9 @@ namespace MedicalBookingService.Server.Data
         public DbSet<PatientProfile> PatientProfiles { get; set; }
         public DbSet<DoctorProfile> DoctorProfiles { get; set; }
         public DbSet<AdminProfile> AdminProfiles { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<DepartmentScheduleConfig> ScheduleConfigs { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

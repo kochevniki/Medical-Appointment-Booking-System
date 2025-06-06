@@ -4,6 +4,7 @@ using MedicalBookingService.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedicalBookingService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250604004101_UpdateAppointmentTable")]
+    partial class UpdateAppointmentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -43,9 +46,6 @@ namespace MedicalBookingService.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsBlocked")
                         .HasColumnType("bit");
 
                     b.Property<string>("Notes")
@@ -183,30 +183,6 @@ namespace MedicalBookingService.Migrations
                     b.HasIndex("OfficeId");
 
                     b.ToTable("AspNetUsers", (string)null);
-                });
-
-            modelBuilder.Entity("MedicalBookingService.Server.Models.DepartmentScheduleConfig", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OfficeId")
-                        .HasColumnType("int");
-
-                    b.Property<TimeSpan>("WorkEnd")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan>("WorkStart")
-                        .HasColumnType("time");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OfficeId");
-
-                    b.ToTable("ScheduleConfigs");
                 });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.DoctorProfile", b =>
@@ -497,17 +473,6 @@ namespace MedicalBookingService.Migrations
                         .WithMany("Users")
                         .HasForeignKey("OfficeId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Office");
-                });
-
-            modelBuilder.Entity("MedicalBookingService.Server.Models.DepartmentScheduleConfig", b =>
-                {
-                    b.HasOne("MedicalBookingService.Server.Models.Office", "Office")
-                        .WithMany()
-                        .HasForeignKey("OfficeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Office");
                 });

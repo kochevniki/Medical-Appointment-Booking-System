@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Radzen;
 using System.Threading.Tasks;
 
 namespace Medical_Appointment_Booking_System
@@ -48,6 +49,8 @@ namespace Medical_Appointment_Booking_System
 
             builder.Services.AddControllers(); // <-- This registers API controllers
             builder.Services.AddHttpClient();
+            builder.Services.AddRadzenComponents();
+
             builder.Services.ConfigureApplicationCookie(options =>
             {
                 options.LoginPath = "/Login";
@@ -56,6 +59,20 @@ namespace Medical_Appointment_Booking_System
             });
 
             var app = builder.Build();
+
+            //using (var scope = app.Services.CreateScope())
+            //{
+            //    var services = scope.ServiceProvider;
+            //    var context = services.GetRequiredService<ApplicationDbContext>();
+            //    var userManager = services.GetRequiredService<UserManager<AppUser>>();
+            //    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+            //    // Ensure DB is up to date
+            //    context.Database.Migrate();
+
+            //    await SeedRolesAsync(roleManager);
+            //    await SeedDepartmentsAsync(context, userManager, roleManager);
+            //}
 
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -72,7 +89,6 @@ namespace Medical_Appointment_Booking_System
             app.UseStaticFiles();
 
             app.MapStaticAssets();
-
 
             //app.Use(async (context, next) =>
             //{
@@ -96,20 +112,6 @@ namespace Medical_Appointment_Booking_System
             app.Run();
         }
 
-        //using (var scope = app.Services.CreateScope())
-        //{
-        //    var services = scope.ServiceProvider;
-        //    var context = services.GetRequiredService<ApplicationDbContext>();
-        //    var userManager = services.GetRequiredService<UserManager<AppUser>>();
-        //    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-        //    // Ensure DB is up to date
-        //    context.Database.Migrate();
-
-        //    await SeedRolesAsync(roleManager);
-        //    await SeedDepartmentsAsync(context, userManager, roleManager);
-        //}
-
         static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
         {
             var roles = new[] { "Admin", "Doctor", "Patient" };
@@ -125,6 +127,8 @@ namespace Medical_Appointment_Booking_System
         {
             var departments = new[] { "Primary Care", "Pediatrics", "Dental", "Physical Therapy", "Eye Exam" };
             var random = new Random();
+            var workStart = new TimeSpan(9, 0, 0); // 9:00 AM
+            var workEnd = new TimeSpan(17, 0, 0);  // 5:00 PM
 
             foreach (var dept in departments)
             {
@@ -134,6 +138,20 @@ namespace Medical_Appointment_Booking_System
                 {
                     office = new Office { Name = dept };
                     context.Offices.Add(office);
+                    await context.SaveChangesAsync();
+                }
+
+                // Create DepartmentScheduleConfig if not exists
+                var existingSchedule = await context.ScheduleConfigs.FirstOrDefaultAsync(s => s.OfficeId == office.Id);
+                if (existingSchedule == null)
+                {
+                    var schedule = new DepartmentScheduleConfig
+                    {
+                        OfficeId = office.Id,
+                        WorkStart = workStart,
+                        WorkEnd = workEnd
+                    };
+                    context.ScheduleConfigs.Add(schedule);
                     await context.SaveChangesAsync();
                 }
 

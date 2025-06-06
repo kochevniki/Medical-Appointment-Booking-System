@@ -18,14 +18,14 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("upload")]
-        public async Task<IActionResult> Upload(IFormFile file)
+        public async Task<IActionResult> Upload(IFormFile file, [FromForm] string userId)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
-            string path = "patients/";
+            string pathAndFileName = $"patients/{userId}/{file.FileName}";
 
-            var url = await _fileService.UploadAsync(file.FileName, file.OpenReadStream(), file.ContentType);
+            var url = await _fileService.UploadAsync(pathAndFileName, file.OpenReadStream(), file.ContentType);
             return Ok(new { url });
         }
 

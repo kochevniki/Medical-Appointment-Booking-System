@@ -4,6 +4,7 @@ using MedicalBookingService.Server.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedicalBookingService.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250604002739_CreateAppointmentTable")]
+    partial class CreateAppointmentTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,62 +24,6 @@ namespace MedicalBookingService.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Appointment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ApprovedByAdminId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("DoctorId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("End")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsApproved")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsBlocked")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("OfficeId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("Start")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApprovedByAdminId");
-
-                    b.HasIndex("DoctorId");
-
-                    b.HasIndex("OfficeId");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("Appointments");
-                });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.AdminProfile", b =>
                 {
@@ -185,7 +132,7 @@ namespace MedicalBookingService.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("MedicalBookingService.Server.Models.DepartmentScheduleConfig", b =>
+            modelBuilder.Entity("MedicalBookingService.Server.Models.Appointment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -193,20 +140,38 @@ namespace MedicalBookingService.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("DoctorId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("End")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("OfficeId")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan>("WorkEnd")
-                        .HasColumnType("time");
+                    b.Property<string>("PatientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<TimeSpan>("WorkStart")
-                        .HasColumnType("time");
+                    b.Property<DateTime>("Start")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DoctorId");
+
                     b.HasIndex("OfficeId");
 
-                    b.ToTable("ScheduleConfigs");
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("Appointments");
                 });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.DoctorProfile", b =>
@@ -441,37 +406,6 @@ namespace MedicalBookingService.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Appointment", b =>
-                {
-                    b.HasOne("MedicalBookingService.Server.Models.AppUser", "ApprovedByAdmin")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByAdminId");
-
-                    b.HasOne("MedicalBookingService.Server.Models.AppUser", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId");
-
-                    b.HasOne("MedicalBookingService.Server.Models.Office", "Office")
-                        .WithMany()
-                        .HasForeignKey("OfficeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MedicalBookingService.Server.Models.AppUser", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApprovedByAdmin");
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Office");
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("MedicalBookingService.Server.Models.AdminProfile", b =>
                 {
                     b.HasOne("MedicalBookingService.Server.Models.AppUser", "AppUser")
@@ -501,15 +435,29 @@ namespace MedicalBookingService.Migrations
                     b.Navigation("Office");
                 });
 
-            modelBuilder.Entity("MedicalBookingService.Server.Models.DepartmentScheduleConfig", b =>
+            modelBuilder.Entity("MedicalBookingService.Server.Models.Appointment", b =>
                 {
+                    b.HasOne("MedicalBookingService.Server.Models.AppUser", "Doctor")
+                        .WithMany()
+                        .HasForeignKey("DoctorId");
+
                     b.HasOne("MedicalBookingService.Server.Models.Office", "Office")
                         .WithMany()
                         .HasForeignKey("OfficeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MedicalBookingService.Server.Models.AppUser", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Doctor");
+
                     b.Navigation("Office");
+
+                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("MedicalBookingService.Server.Models.DoctorProfile", b =>
