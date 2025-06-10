@@ -14,6 +14,7 @@ public class Appointment
     public bool IsBlocked { get; set; } = false;
     // Approval fields
     public bool IsApproved { get; set; } = false;
+    public bool IsRejected { get; set; } = false;
     public DateTime? ApprovedAt { get; set; }
     public string? ApprovedByAdminId { get; set; } // FK to AppUser (Admin)
     public AppUser? ApprovedByAdmin { get; set; }

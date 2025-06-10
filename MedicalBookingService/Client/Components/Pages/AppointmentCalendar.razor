@@ -3,101 +3,286 @@
 @using System.Net.Http.Json
 @using MedicalBookingService.Shared.Models.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using Radzen
-@inject HttpClient Http
+@using System.Security.Claims
+@using System.Text.Json
+@using System.Text
 @inject AuthenticationStateProvider AuthProvider
 @inject DialogService DialogService
+@inject IHttpClientFactory ClientFactory
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 
 <h3>Appointment Calendar</h3>
 
-<RadzenScheduler Data="@appointments"
-                 TItem="AppointmentDto"
-                 SlotRender=@OnSlotRender
-                 SlotSelect=@OnSlotSelect
-                 StartProperty="Start"
-                 EndProperty="End"
-                 TextProperty="Title"
-                 SlotDuration="30"
-                 AllowSwitchView="true"
-                 AllowNavigate="true"
-                 Views="@views"
-                 Style="height: 700px;"
-                 Grouped="false"
-                 AppointmentRender="@(args => OnRenderAppointment(args))" >
-    <RadzenDayView />
-    <RadzenWeekView />
-    <RadzenMonthView />
-</RadzenScheduler>
+@if (IsPatient || (!IsAdmin && !IsDoctor))
+{
+    <div class="mb-3">
+        <label for="departmentSelect" class="form-label">Department</label>
+        <select id="departmentSelect" class="form-select" @onchange="OnDepartmentChanged">
+            <option value="">-- Select Department --</option>
+            @foreach (var dept in Departments)
+            {
+                <option value="@dept.Id">@dept.Name</option>
+            }
+        </select>
+    </div>
+}
+
+@if(IsAdmin || IsDoctor)
+{
+    <h3>@currentDepartmentName</h3>
+}
+
+@if (SelectedDepartmentId != null)
+{
+    <RadzenScheduler Data="@appointments"
+                     TItem="AppointmentDto"
+                     AppointmentSelect="OnAppointmentSelected"
+                     SlotRender="OnSlotRender"
+                     SlotSelect="OnSlotSelect"
+                     StartProperty="Start"
+                     EndProperty="End"
+                     TextProperty="Title"
+                     SlotDuration="30"
+                     AllowSwitchView="true"
+                     AllowNavigate="true"
+                     Views="@views"
+                     Style="height: 700px;"
+                     Grouped="false"
+                     AppointmentRender="OnRenderAppointment">
+        <RadzenDayView />
+        <RadzenWeekView />
+        <RadzenMonthView />
+    </RadzenScheduler>
+}
+
+<!-- Booking Modal -->
+@if (ShowModal && SelectedAppointment != null)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Manage Appointment</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Appointment:</strong> @SelectedAppointment.Title</p>
+                    <p><strong>Start:</strong> @SelectedAppointment.Start.ToString("yyyy-MM-dd HH:mm")</p>
+                    <p><strong>End:</strong> @SelectedAppointment.End.ToString("yyyy-MM-dd HH:mm")</p>
+                    <p><strong>Status:</strong> @(SelectedAppointment.IsApproved ? "Approved" : SelectedAppointment.IsRejected ? "Rejected" : "Pending")</p>
+                </div>
+                <div class="modal-footer">
+                    @if (IsAdmin) // Show buttons only for admins
+                    {
+                        <button class="btn btn-success" @onclick="ApproveAppointment">Approve</button>
+                        <button class="btn btn-danger" @onclick="RejectAppointment">Reject</button>
+                    }
+                    <button class="btn btn-secondary" @onclick="CloseModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 
 @code {
-    private List<AppointmentDto> appointments = new();
-    private string currentView = "SchedulerView.Week";
+    List<DepartmentDto> Departments = new();
+    int? SelectedDepartmentId;
+    string currentDepartmentName = string.Empty;
+    List<AppointmentDto> appointments = new();
     private IEnumerable<string> views = new[] { "Day", "Week", "Month" };
+    bool ShowModal = false;
+    AppointmentDto BookingModel = new();
+    private AppointmentDto? SelectedAppointment;
+    List<DoctorDto> AvailableDoctors = new();
+    private HttpClient? _httpClient;
+    string? PatientId;
+    string? UserId;
+    bool IsAdmin;
+    bool IsDoctor;
+    bool IsPatient;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAppointmentsAsync();
+        _httpClient = ClientFactory.CreateClient("ServerAPI");
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity is { IsAuthenticated: true })
+        {
+            UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            PatientId = UserId; // PatientId is the same as UserId for a patient
+            IsAdmin = user.IsInRole("Admin");
+            IsDoctor = user.IsInRole("Doctor");
+            IsPatient = user.IsInRole("Patient");
+
+            if (IsAdmin)
+            {
+                var url = $"api/appointment/admin/{UserId}/office";
+                var adminOffice = await _httpClient.GetFromJsonAsync<AdminOfficeDto>(url);
+                if (adminOffice != null)
+                {
+                    SelectedDepartmentId = adminOffice.OfficeId;
+                    currentDepartmentName = adminOffice.OfficeName;
+                }
+            }
+            else if (IsDoctor)
+            {
+                var doctorOffice = await _httpClient.GetFromJsonAsync<DoctorOfficeDto>($"api/appointment/doctor/{UserId}/office");
+                if (doctorOffice != null)
+                {
+                    SelectedDepartmentId = doctorOffice.OfficeId;
+                    currentDepartmentName = doctorOffice.OfficeName;
+                }
+            }
+        }
+        Departments = await _httpClient.GetFromJsonAsync<List<DepartmentDto>>($"api/office/all") ?? new();
+        if (SelectedDepartmentId != null || IsPatient)
+        {
+            await LoadAppointmentsAsync();
+        }
+    }
+
+    private async Task OnDepartmentChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var deptId))
+        {
+            SelectedDepartmentId = deptId;
+            var selectedDept = Departments.FirstOrDefault(d => d.Id == deptId);
+            currentDepartmentName = selectedDept.Name;
+            await LoadAppointmentsAsync();
+        }
+        else
+        {
+            SelectedDepartmentId = null;
+            var selectedDept = Departments.FirstOrDefault(d => d.Id == deptId);
+            currentDepartmentName = selectedDept.Name;
+            appointments = new();
+        }
+    }
+
+    private async Task ApproveAppointment()
+    {
+        if (SelectedAppointment != null)
+        {
+            var adminId = UserId; // Replace this with the actual admin ID
+            var jsonData = JsonSerializer.Serialize(adminId);
+            var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"api/appointment/{SelectedAppointment.Id}/approve", content);
+            if (response.IsSuccessStatusCode)
+            {
+                // Update UI locally without reloading
+                SelectedAppointment.IsApproved = true;
+                SelectedAppointment.IsRejected = false;
+            }
+            else
+            {
+                Console.WriteLine("Failed to approve appointment.");
+            }
+
+            ShowModal = false;
+            await LoadAppointmentsAsync(); // Refresh appointments
+        }
+    }
+
+    private async Task RejectAppointment()
+    {
+        if (SelectedAppointment != null)
+        {
+            var response = await _httpClient.PostAsync($"api/appointment/{SelectedAppointment.Id}/reject", null);
+            if (response.IsSuccessStatusCode)
+            {
+                // Update UI locally without reloading
+                SelectedAppointment.IsRejected = true;
+                SelectedAppointment.IsApproved = false;
+            }
+            else
+            {
+                Console.WriteLine("Failed to reject appointment.");
+            }
+
+            ShowModal = false;
+            await LoadAppointmentsAsync(); // Refresh appointments
+        }
     }
 
     private async Task LoadAppointmentsAsync()
     {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (!user.Identity?.IsAuthenticated ?? true) return;
-
-        var role = user.FindFirst("role")?.Value;
-        var userId = user.FindFirst("sub")?.Value;
-
-        var url = role switch
-        {
-            "Patient" => $"api/appointments/patient/{userId}",
-            "Doctor" => $"api/appointments/doctor/{userId}",
-            "Admin" => $"api/appointments/admin/{userId}",
-            _ => null
-        };
-
-        if (url is null) return;
-
-        appointments = await Http.GetFromJsonAsync<List<AppointmentDto>>(url) ?? new();
+        if (SelectedDepartmentId == null) return;
+        appointments = await _httpClient.GetFromJsonAsync<List<AppointmentDto>>($"api/appointment/department/{SelectedDepartmentId}") ?? new();
     }
 
     private void OnRenderAppointment(SchedulerAppointmentRenderEventArgs<AppointmentDto> args)
     {
-        // Give a color based on role or type (adjust as needed)
-        args.Attributes["style"] = "background-color: #007bff; color: white; border-radius: 4px; padding: 4px;";
+        //args.Attributes["style"] = "background-color: #007bff; color: white; border-radius: 4px; padding: 4px;";
+
+        if (args.Data.IsRejected)
+        {
+            args.Attributes["style"] = "background-color: red; color: white; border-radius: 4px; padding: 4px;";
+        }
+        else if (args.Data.IsApproved)
+        {
+            args.Attributes["style"] = "background-color: blue; color: white; border-radius: 4px; padding: 4px;";
+        }
+        else
+        {
+            args.Attributes["style"] = "background-color: gray; color: white; border-radius: 4px; padding: 4px;";
+        }
     }
 
     private void OnSlotRender(SchedulerSlotRenderEventArgs args)
     {
-        // Highlight today in month view
         if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
         {
             args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
         }
-
-        // Highlight working hours (9 AM – 5 PM)
-        if ((args.View.Text == "Week" || args.View.Text == "Day") &&
-            args.Start.Hour >= 9 && args.Start.Hour < 17)
+        if ((args.View.Text == "Week" || args.View.Text == "Day") && args.Start.Hour >= 9 && args.Start.Hour < 17)
         {
-            args.Attributes["style"] = "background-color: rgba(200, 240, 255, 0.4);"; // light blue tint
+            args.Attributes["style"] = "background-color: rgba(200, 240, 255, 0.4);";
         }
+    }
+
+    private void OnAppointmentSelected(SchedulerAppointmentSelectEventArgs<AppointmentDto> args)
+    {
+        SelectedAppointment = args.Data; // Store selected appointment
+        ShowModal = true;
     }
 
     private async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
     {
-        // if (args.View.Text != "Year")
-        // {
-        //     Appointment data = await DialogService.OpenAsync<AddAppointmentPage>("Add Appointment",
-        //         new Dictionary<string, object> { { "Start", args.Start }, { "End", args.End } });
-
-        //     if (data != null)
-        //     {
-        //         appointments.Add(data);
-        //         Either call the Reload method or reassign the Data property of the Scheduler
-        //         await scheduler.Reload();
-        //     }
-        // }
+        if (SelectedDepartmentId == null) return;
+        var url = $"api/office/{SelectedDepartmentId}/available-doctors?start={args.Start:o}&end={args.End:o}";
+        AvailableDoctors = await _httpClient.GetFromJsonAsync<List<DoctorDto>>(url) ?? new();
+        BookingModel = new AppointmentDto
+        {
+            Start = args.Start,
+            End = args.End,
+            OfficeId = SelectedDepartmentId.Value,
+            PatientId = PatientId
+        };
+        ShowModal = true;
     }
 
+    private void CloseModal()
+    {
+        ShowModal = false;
+        BookingModel = new();
+        AvailableDoctors = new();
+    }
+
+    private bool CanBook => !string.IsNullOrWhiteSpace(BookingModel.Title) && !string.IsNullOrWhiteSpace(BookingModel.DoctorId);
+
+    async Task BookAppointment()
+    {
+        BookingModel.PatientId = PatientId;
+        await _httpClient.PostAsJsonAsync("api/appointment/book", BookingModel);
+        ShowModal = false;
+        await LoadAppointmentsAsync();
+    }
 }

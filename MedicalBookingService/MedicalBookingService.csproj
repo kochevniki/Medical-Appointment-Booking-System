@@ -63,8 +63,4 @@
     <None Include="wwwroot\lib\bootstrap\dist\js\bootstrap.min.js.map" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Shared\Models\Enums\" />
-  </ItemGroup>
-
 </Project>

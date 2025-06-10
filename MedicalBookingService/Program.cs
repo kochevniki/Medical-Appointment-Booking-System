@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Radzen;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Medical_Appointment_Booking_System
@@ -48,7 +49,18 @@ namespace Medical_Appointment_Booking_System
 
 
             builder.Services.AddControllers(); // <-- This registers API controllers
-            builder.Services.AddHttpClient();
+
+            builder.Services.AddHttpClient("ServerAPI", client =>
+            {
+                client.BaseAddress = new Uri("https://localhost:7136");
+            }).ConfigurePrimaryHttpMessageHandler(() =>
+            new HttpClientHandler
+            {
+                UseCookies = true,
+                CookieContainer = new CookieContainer(),
+                Credentials = CredentialCache.DefaultCredentials
+            });
+
             builder.Services.AddRadzenComponents();
 
             builder.Services.ConfigureApplicationCookie(options =>
@@ -56,6 +68,8 @@ namespace Medical_Appointment_Booking_System
                 options.LoginPath = "/Login";
                 options.AccessDeniedPath = "/AccessDenied";
                 options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
             });
 
             var app = builder.Build();
