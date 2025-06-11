@@ -286,6 +286,7 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpGet("admin/{userId}/office")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<AdminOfficeDto>> GetAdminOffice(string userId)
         {
             var adminProfile = await _db.AdminProfiles

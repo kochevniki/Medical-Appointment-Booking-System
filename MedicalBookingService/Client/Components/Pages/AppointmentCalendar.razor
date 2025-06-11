@@ -1,20 +1,17 @@
 ﻿@page "/calendar"
-@rendermode InteractiveServer
 @using System.Net.Http.Json
+@using MedicalBookingService.Client.Services
+@using MedicalBookingService.Shared.Models
 @using MedicalBookingService.Shared.Models.DTOs
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.EntityFrameworkCore
 @using Radzen
 @using System.Security.Claims
 @using System.Text.Json
 @using System.Text
-@inject AuthenticationStateProvider AuthProvider
+@inject HttpClient Http
 @inject DialogService DialogService
-@inject IHttpClientFactory ClientFactory
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
-@inject IHttpContextAccessor HttpContextAccessor
+@inject AuthClientService AuthClientService
+
 
 <h3>Appointment Calendar</h3>
 
@@ -101,7 +98,8 @@
     AppointmentDto BookingModel = new();
     private AppointmentDto? SelectedAppointment;
     List<DoctorDto> AvailableDoctors = new();
-    private HttpClient? _httpClient;
+    private UserInfo? CurrentUser;
+    private bool IsAuthenticated = false;
     string? PatientId;
     string? UserId;
     bool IsAdmin;
@@ -110,22 +108,24 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _httpClient = ClientFactory.CreateClient("ServerAPI");
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity is { IsAuthenticated: true })
+        CurrentUser = await AuthClientService.GetCurrentUserAsync();
+        if (CurrentUser != null)
         {
-            UserId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            IsAuthenticated = true;
+        }
+
+        if (IsAuthenticated && CurrentUser != null)
+    {
+            UserId = CurrentUser.Id;
             PatientId = UserId; // PatientId is the same as UserId for a patient
-            IsAdmin = user.IsInRole("Admin");
-            IsDoctor = user.IsInRole("Doctor");
-            IsPatient = user.IsInRole("Patient");
+            IsAdmin = CurrentUser.Roles.Contains("Admin");
+            IsDoctor = CurrentUser.Roles.Contains("Doctor");
+            IsPatient = CurrentUser.Roles.Contains("Patient");
 
             if (IsAdmin)
             {
                 var url = $"api/appointment/admin/{UserId}/office";
-                var adminOffice = await _httpClient.GetFromJsonAsync<AdminOfficeDto>(url);
+                var adminOffice = await Http.GetFromJsonAsync<AdminOfficeDto>(url);
                 if (adminOffice != null)
                 {
                     SelectedDepartmentId = adminOffice.OfficeId;
@@ -134,7 +134,7 @@
             }
             else if (IsDoctor)
             {
-                var doctorOffice = await _httpClient.GetFromJsonAsync<DoctorOfficeDto>($"api/appointment/doctor/{UserId}/office");
+                var doctorOffice = await Http.GetFromJsonAsync<DoctorOfficeDto>($"api/appointment/doctor/{UserId}/office");
                 if (doctorOffice != null)
                 {
                     SelectedDepartmentId = doctorOffice.OfficeId;
@@ -142,7 +142,7 @@
                 }
             }
         }
-        Departments = await _httpClient.GetFromJsonAsync<List<DepartmentDto>>($"api/office/all") ?? new();
+        Departments = await Http.GetFromJsonAsync<List<DepartmentDto>>($"api/office/all") ?? new();
         if (SelectedDepartmentId != null || IsPatient)
         {
             await LoadAppointmentsAsync();
@@ -174,7 +174,7 @@
             var adminId = UserId; // Replace this with the actual admin ID
             var jsonData = JsonSerializer.Serialize(adminId);
             var content = new StringContent(jsonData, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"api/appointment/{SelectedAppointment.Id}/approve", content);
+            var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/approve", content);
             if (response.IsSuccessStatusCode)
             {
                 // Update UI locally without reloading
@@ -195,7 +195,7 @@
     {
         if (SelectedAppointment != null)
         {
-            var response = await _httpClient.PostAsync($"api/appointment/{SelectedAppointment.Id}/reject", null);
+            var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/reject", null);
             if (response.IsSuccessStatusCode)
             {
                 // Update UI locally without reloading
@@ -215,7 +215,7 @@
     private async Task LoadAppointmentsAsync()
     {
         if (SelectedDepartmentId == null) return;
-        appointments = await _httpClient.GetFromJsonAsync<List<AppointmentDto>>($"api/appointment/department/{SelectedDepartmentId}") ?? new();
+        appointments = await Http.GetFromJsonAsync<List<AppointmentDto>>($"api/appointment/department/{SelectedDepartmentId}") ?? new();
     }
 
     private void OnRenderAppointment(SchedulerAppointmentRenderEventArgs<AppointmentDto> args)
@@ -258,7 +258,7 @@
     {
         if (SelectedDepartmentId == null) return;
         var url = $"api/office/{SelectedDepartmentId}/available-doctors?start={args.Start:o}&end={args.End:o}";
-        AvailableDoctors = await _httpClient.GetFromJsonAsync<List<DoctorDto>>(url) ?? new();
+        AvailableDoctors = await Http.GetFromJsonAsync<List<DoctorDto>>(url) ?? new();
         BookingModel = new AppointmentDto
         {
             Start = args.Start,
@@ -281,7 +281,7 @@
     async Task BookAppointment()
     {
         BookingModel.PatientId = PatientId;
-        await _httpClient.PostAsJsonAsync("api/appointment/book", BookingModel);
+        await Http.PostAsJsonAsync("api/appointment/book", BookingModel);
         ShowModal = false;
         await LoadAppointmentsAsync();
     }

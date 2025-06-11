@@ -1,29 +1,24 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>MedicalBookingService</RootNamespace>
-    <AssemblyName>$(AssemblyName.Replace(' ', '_'))</AssemblyName>
+    <RootNamespace>MedicalBookingService.Client</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.5" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.5">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
-    <PackageReference Include="Radzen.Blazor" Version="7.0.7" />
+    <Content Include="Properties\launchSettings.json" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.6" />
+    <PackageReference Include="Radzen.Blazor" Version="7.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Shared.csproj" />
     <None Include="wwwroot\favicon.png" />
     <None Include="wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css" />
     <None Include="wwwroot\lib\bootstrap\dist\css\bootstrap-grid.css.map" />

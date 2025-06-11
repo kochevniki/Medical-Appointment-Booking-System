@@ -1,34 +1,27 @@
 ﻿@page "/Dashboard"
-@rendermode InteractiveServer
-@inject MedicalBookingService.Shared.Services.AuthService AuthService
+@using MedicalBookingService.Client.Services
+@using MedicalBookingService.Shared.Models
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject AuthClientService AuthClientService
 
 <h3>Dashboard</h3>
-@if (!AuthService.IsInitialized)
+@if (!IsAuthenticated)
 {
     <p>Pulling your information</p>
 }
-else if (AuthService.IsAuthenticated)
+else if (IsAuthenticated)
 {
     <p>User is authenticated.</p>
-    @if (AuthService.UserRoles.Contains("Admin"))
+    @if (UserRoles.Contains("Admin"))
     {
         <p>Welcome Admin! You can manage appointments.</p>
     }
-    else if (AuthService.UserRoles.Contains("Doctor") && AuthService.CurrentUser?.DoctorProfile != null)
+    else if (UserRoles.Contains("Doctor"))
     {
-        if (AuthService.CurrentUser.DoctorProfile.OfficeId == 1)
-        {
-            <p>Welcome Primary Care Doctor! You can view your schedule.</p>
-        }
-        else
-        {
-            <p>Welcome Doctor! You can view your schedule.</p>
-        }
-        
+        <p>Welcome Doctor! You can view your schedule.</p>
     }
-    else if (AuthService.UserRoles.Contains("Patient"))
+    else if (UserRoles.Contains("Patient"))
     {
         <p>Welcome Patient! You can request an appointment.</p>
     }
@@ -43,13 +36,19 @@ else
 }
 
 @code {
-    protected override void OnInitialized()
-    {
-        AuthService.OnChange += StateHasChanged;
-    }
 
-    public void Dispose()
+    private UserInfo? CurrentUser;
+    private bool IsAuthenticated = false;
+    private List<string> UserRoles = new();
+
+    protected override async Task OnInitializedAsync()
     {
-        AuthService.OnChange -= StateHasChanged;
+        CurrentUser = await AuthClientService.GetCurrentUserAsync();
+
+        if (CurrentUser != null)
+        {
+            IsAuthenticated = true;
+            UserRoles = CurrentUser.Roles;
+        }
     }
 }

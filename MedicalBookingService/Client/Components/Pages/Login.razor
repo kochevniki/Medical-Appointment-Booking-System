@@ -1,37 +1,36 @@
 ﻿@page "/login"
-@rendermode InteractiveServer
-@inject MedicalBookingService.Shared.Services.AuthService AuthService
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject HttpClient Http
 
 <h3>Login</h3>
 
-<LoadingSpinner Id="loader" />
+<LoadingSpinner IsLoading="_isLoading" />
 
 <form @onsubmit="HandleLogin">
     <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
     <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input id="email" name="email" type="email" class="form-control" required />
+        <input id="email" name="email" type="email" class="form-control" bind="@email" required />
     </div>
 
     <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input id="password" name="password" type="password" class="form-control" required />
+        <input id="password" name="password" type="password" class="form-control" bind="@password" required />
     </div>
 
     <button type="submit" class="btn btn-primary">Login</button>
 </form>
 
 @code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private bool _isLoading = false;
+
     private async Task HandleLogin()
     {
-        await JS.InvokeVoidAsync("startSpinner");
-
-        var email = await JS.InvokeAsync<string>("getInputValue", "email");
-        var password = await JS.InvokeAsync<string>("getInputValue", "password");
+        _isLoading = true;
 
         var payload = new
         {
@@ -39,14 +38,12 @@
             Password = password
         };
 
-
         try
         {
-            var result = await JS.InvokeAsync<LoginResponse>("loginFunctionApi", email, password);
+            var response = await Http.PostAsJsonAsync("/api/auth/login", payload);
 
-            if (result.Status == 200 || result.Status == 201)
+            if (response.IsSuccessStatusCode)
             {
-                await AuthService.InitializeAsync();
                 Navigation.NavigateTo("/Dashboard", forceLoad: true);
             }
             else
@@ -60,13 +57,7 @@
         }
         finally
         {
-            await JS.InvokeVoidAsync("stopSpinner");
+            _isLoading = false;
         }
-    }
-
-    private class LoginResponse
-    {
-        public int Status { get; set; }
-        public string Data { get; set; } = string.Empty;
     }
 }

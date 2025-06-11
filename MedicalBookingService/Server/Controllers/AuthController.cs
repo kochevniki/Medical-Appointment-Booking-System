@@ -1,6 +1,8 @@
-﻿using MedicalBookingService.Client.Components;
-using MedicalBookingService.Server.Models;
+﻿using MedicalBookingService.Server.Models;
 using MedicalBookingService.Server.Models.DTOs;
+using MedicalBookingService.Server.Services;
+using MedicalBookingService.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,11 +14,13 @@ public class AuthController : ControllerBase
 {
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
+    private readonly AuthService _authService;
 
-    public AuthController(SignInManager<AppUser> signInManager, UserManager<AppUser> userManager)
+    public AuthController(SignInManager<AppUser> signInManager, UserManager<AppUser> userManager, AuthService authService)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _authService = authService;
     }
 
     [HttpPost("login")]
@@ -47,5 +51,26 @@ public class AuthController : ControllerBase
         };
         Response.Cookies.Delete(".AspNetCore.Identity.Application", cookieOptions);
         return Ok();
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _authService.GetUserByIdAsync(userId);
+        var roles = await _authService.GetUserRolesAsync(user);
+
+        var userInfo = new UserInfo
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Roles = roles
+        };
+
+        return Ok(userInfo);
     }
 }

@@ -1,18 +1,11 @@
-using MedicalBookingService.Client.Components;
-using MedicalBookingService.Server.Data; // Your DbContext namespace
-using MedicalBookingService.Server.Models; // Your user model namespace
+using MedicalBookingService.Server.Data;
+using MedicalBookingService.Server.Models;
 using MedicalBookingService.Server.Services;
-using MedicalBookingService.Shared.Constants;
 using MedicalBookingService.Shared.Services;
-using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Radzen;
-using System.Net;
-using System.Threading.Tasks;
 
-namespace Medical_Appointment_Booking_System
+namespace MedicalBookingService.Server
 {
     public class Program
     {
@@ -20,109 +13,57 @@ namespace Medical_Appointment_Booking_System
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-            builder.Services.AddRazorComponents()
-                .AddInteractiveServerComponents();
+            // Load configuration from appsettings.json
+            var configuration = builder.Configuration;
 
+            // Add Database (SQL Server)
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
-            {
-                options.TokenLifespan = TimeSpan.FromHours(1);
-            });
-
-            builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
-            {
-                options.SignIn.RequireConfirmedAccount = true;
-            })
+            // Configure Identity for authentication
+            builder.Services.AddIdentity<AppUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                options.SlidingExpiration = true;
+            });
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("https://localhost:8080") // Change for production!
+                          .AllowCredentials()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
+            // Register application services
             builder.Services.AddScoped<AuthService>();
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<FileService>();
 
-            builder.Services.Configure<CircuitOptions>(options =>
-            {
-                options.DetailedErrors = true;
-            });
-
-
-            builder.Services.AddControllers(); // <-- This registers API controllers
-
-            builder.Services.AddHttpClient("ServerAPI", client =>
-            {
-                client.BaseAddress = new Uri("https://localhost:7136");
-            }).ConfigurePrimaryHttpMessageHandler(() =>
-            new HttpClientHandler
-            {
-                UseCookies = true,
-                CookieContainer = new CookieContainer(),
-                Credentials = CredentialCache.DefaultCredentials
-            });
-
-            builder.Services.AddRadzenComponents();
-
-            builder.Services.ConfigureApplicationCookie(options =>
-            {
-                options.LoginPath = "/Login";
-                options.AccessDeniedPath = "/AccessDenied";
-                options.Cookie.HttpOnly = true;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-                options.Cookie.SameSite = SameSiteMode.Lax;
-            });
+            // Allow API controllers
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
-            //using (var scope = app.Services.CreateScope())
-            //{
-            //    var services = scope.ServiceProvider;
-            //    var context = services.GetRequiredService<ApplicationDbContext>();
-            //    var userManager = services.GetRequiredService<UserManager<AppUser>>();
-            //    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-            //    // Ensure DB is up to date
-            //    context.Database.Migrate();
-
-            //    await SeedRolesAsync(roleManager);
-            //    await SeedDepartmentsAsync(context, userManager, roleManager);
-            //}
-
-            // Configure the HTTP request pipeline.
+            // Configure Middleware
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
-
+            app.UseCors("AllowFrontend");
             app.UseHttpsRedirection();
-
-            app.UseAntiforgery();
-
-            app.UseStaticFiles();
-
-            app.MapStaticAssets();
-
-            //app.Use(async (context, next) =>
-            //{
-            //    foreach (var cookie in context.Request.Cookies.Keys)
-            //    {
-            //        context.Response.Cookies.Delete(cookie);
-            //    }
-
-            //    await next();
-            //});
-
-
             app.UseAuthentication();
             app.UseAuthorization();
-
-            app.MapRazorComponents<App>()
-                .AddInteractiveServerRenderMode();
-
-            app.MapControllers(); // <-- This maps the controller routes
-
+            app.MapControllers();  // Maps API endpoints
             app.Run();
         }
 

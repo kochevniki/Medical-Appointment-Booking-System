@@ -1,8 +1,9 @@
-﻿@rendermode InteractiveServer
-@inject MedicalBookingService.Shared.Services.AuthService AuthService
+﻿@using MedicalBookingService.Client.Services
+@using MedicalBookingService.Shared.Models
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject AuthClientService AuthClientService
 
 
 <nav class="navbar navbar-expand-lg bg-primary" data-bs-theme="dark">
@@ -30,7 +31,7 @@
                         Calendar
                     </NavLink>
                 </li>
-                @if(AuthService.IsAuthenticated)
+                @if(IsAuthenticated)
                 {
                     <li class="nav-item">
                         <button class="btn btn-danger" @onclick="PerformLogout">
@@ -57,22 +58,39 @@
 </nav>
 
 @code {
+    private UserInfo? CurrentUser;
+    private bool IsAuthenticated = false;
+    private List<string> UserRoles = new();
+
     protected override async Task OnInitializedAsync()
     {
-        if (!AuthService.IsAuthenticated)
+        CurrentUser = await AuthClientService.GetCurrentUserAsync();
+
+        if (CurrentUser != null)
         {
-            await AuthService.InitializeAsync();
+            IsAuthenticated = true;
+            UserRoles = CurrentUser.Roles;
         }
     }
 
     private async Task PerformLogout()
     {
-        await JS.InvokeVoidAsync("fetch", "/api/auth/logout", new
+        var response = await Http.PostAsync("/api/auth/logout", null);
+
+        if (response.IsSuccessStatusCode)
         {
-            method = "POST",
-            credentials = "include"
-        });
-        
-        await JS.InvokeVoidAsync("location.reload");
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
     }
+
+    // private async Task PerformLogout()
+    // {
+    //     await JS.InvokeVoidAsync("fetch", "/api/auth/logout", new
+    //     {
+    //         method = "POST",
+    //         credentials = "include"
+    //     });
+        
+    //     await JS.InvokeVoidAsync("location.reload");
+    // }
 }

@@ -1,5 +1,4 @@
-﻿using MedicalBookingService.Shared.Services;
-using System.Net;
+﻿using System.Net;
 using System.Net.Mail;
 
 namespace MedicalBookingService.Server.Services
