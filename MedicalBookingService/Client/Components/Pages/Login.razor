@@ -1,23 +1,22 @@
 ﻿@page "/login"
+@using MedicalBookingService.Server.Models.DTOs
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject HttpClient Http
 
 <h3>Login</h3>
 
-<LoadingSpinner IsLoading="_isLoading" />
-
 <form @onsubmit="HandleLogin">
     <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
     <div class="mb-3">
         <label for="email" class="form-label">Email</label>
-        <input id="email" name="email" type="email" class="form-control" bind="@email" required />
+        <input id="email" name="email" type="email" class="form-control" @bind="email" required />
     </div>
 
     <div class="mb-3">
         <label for="password" class="form-label">Password</label>
-        <input id="password" name="password" type="password" class="form-control" bind="@password" required />
+        <input id="password" name="password" type="password" class="form-control" @bind="password" required />
     </div>
 
     <button type="submit" class="btn btn-primary">Login</button>
@@ -26,13 +25,11 @@
 @code {
     private string email = string.Empty;
     private string password = string.Empty;
-    private bool _isLoading = false;
 
     private async Task HandleLogin()
     {
-        _isLoading = true;
 
-        var payload = new
+        var payload = new LoginDto
         {
             Email = email,
             Password = password
@@ -57,7 +54,6 @@
         }
         finally
         {
-            _isLoading = false;
         }
     }
 }

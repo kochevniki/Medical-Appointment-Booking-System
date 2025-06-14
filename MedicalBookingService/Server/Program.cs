@@ -21,25 +21,60 @@ namespace MedicalBookingService.Server
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Configure Identity for authentication
-            builder.Services.AddIdentity<AppUser, IdentityRole>()
+            builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
+            {
+                // Optional: Configure Identity password/user requirements here
+                options.SignIn.RequireConfirmedAccount = false; // Example: Don't require email confirmation for sign-in
+            })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
+            // Configure Application Cookie to return 401/403 for API requests instead of redirecting
             builder.Services.ConfigureApplicationCookie(options =>
             {
-                options.Cookie.HttpOnly = true;
-                options.ExpireTimeSpan = TimeSpan.FromDays(7);
-                options.SlidingExpiration = true;
+                options.Cookie.HttpOnly = true; // Cookie is only accessible by the server
+                options.ExpireTimeSpan = TimeSpan.FromDays(7); // Cookie expires in 7 days
+                options.SlidingExpiration = true; // Renew cookie if it's nearing expiration
+
+                // Event to handle redirection when an unauthenticated user tries to access an authorized resource
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    // Check if the request is for an API endpoint
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized; // Return 401 Unauthorized
+                        // Clear the Location header to prevent browser redirection, important for SPA APIs
+                        context.Response.Headers["Location"] = "/";
+                        return Task.CompletedTask;
+                    }
+                    // For non-API requests (e.g., if you had Razor Pages, it would redirect to the configured login path)
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                };
+
+                // Event to handle redirection when an authorized user tries to access a forbidden resource
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden; // Return 403 Forbidden
+                        context.Response.Headers["Location"] = "/"; // Clear the Location header
+                        return Task.CompletedTask;
+                    }
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                };
             });
 
+            // Configure CORS policy for the frontend client
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("https://localhost:8080") // Change for production!
-                          .AllowCredentials()
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+                    policy.WithOrigins("https://localhost:8080") // Specify the exact origin of your Blazor client
+                          .AllowAnyHeader() // Allow all headers
+                          .AllowAnyMethod() // Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
+                          .AllowCredentials(); // IMPORTANT: This allows cookies to be sent with cross-origin requests
                 });
             });
 
@@ -48,23 +83,25 @@ namespace MedicalBookingService.Server
             builder.Services.AddScoped<EmailService>();
             builder.Services.AddScoped<FileService>();
 
-            // Allow API controllers
+            // Allow API controllers to be discovered and mapped
             builder.Services.AddControllers();
 
             var app = builder.Build();
 
-            // Configure Middleware
+            // Configure Middleware Pipeline
             if (!app.Environment.IsDevelopment())
             {
-                app.UseExceptionHandler("/Error");
-                app.UseHsts();
+                app.UseExceptionHandler("/Error"); // Centralized error handling
+                app.UseHsts(); // Enforce HTTPS for a specified duration
             }
-            app.UseCors("AllowFrontend");
-            app.UseHttpsRedirection();
-            app.UseAuthentication();
-            app.UseAuthorization();
-            app.MapControllers();  // Maps API endpoints
-            app.Run();
+
+            app.UseHttpsRedirection(); // Redirect HTTP requests to HTTPS (should be early in the pipeline)
+            app.UseCors("AllowFrontend"); // Enable CORS policy (must be before UseAuthentication/UseAuthorization)
+            app.UseAuthentication();    // Identifies who the user is (must be before UseAuthorization)
+            app.UseAuthorization();     // Determines if the user can access a resource
+
+            app.MapControllers(); // Maps API endpoints to their respective controllers
+            app.Run(); // Runs the application
         }
 
         static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)

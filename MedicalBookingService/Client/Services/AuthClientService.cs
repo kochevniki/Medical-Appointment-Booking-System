@@ -3,14 +3,9 @@ using System.Net.Http.Json;
 
 namespace MedicalBookingService.Client.Services
 {
-    public class AuthClientService
+    public class AuthClientService(HttpClient http)
     {
-        private readonly HttpClient _http;
-
-        public AuthClientService(HttpClient http)
-        {
-            _http = http;
-        }
+        private readonly HttpClient _http = http;
 
         public async Task<UserInfo?> GetCurrentUserAsync()
         {

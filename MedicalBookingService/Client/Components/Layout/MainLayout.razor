@@ -1,11 +1,8 @@
-﻿@inject NavigationManager Navigation
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 
-<NavMenu />
-
-<CascadingAuthenticationState>
-
-    <div class="container mt-4">
+<div class="main-layout">
+    <NavMenu />
+    <div class="content px-4">
         @Body
     </div>
-</CascadingAuthenticationState>
+</div>

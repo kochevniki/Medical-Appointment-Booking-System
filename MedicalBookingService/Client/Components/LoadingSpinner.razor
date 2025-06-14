@@ -1,4 +1,7 @@
-﻿@if (IsLoading)
+﻿@using MedicalBookingService.Client.Services
+@inject LoadingService LoadingService
+
+@if (LoadingService.IsLoading)
 {
     <div class="spinner-overlay">
         <div class="spinner-border text-primary" role="status">
@@ -10,8 +13,25 @@
 @code {
     [Parameter]
     public string Id { get; set; } = "loader"; // Default ID
-    [Parameter]
-    public bool IsLoading { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        LoadingService.OnChange += StateHasChanged;
+        LoadingService.OnChange += HandleLoadingServiceChange;
+    }
+    private void HandleLoadingServiceChange()
+    {
+        InvokeAsync(() =>
+        {
+            StateHasChanged(); // Force a re-render of this component.
+        });
+    }
+
+    public void Dispose()
+    {
+        LoadingService.OnChange -= StateHasChanged;
+        LoadingService.OnChange -= HandleLoadingServiceChange;
+    }
 }
 
 <style>
