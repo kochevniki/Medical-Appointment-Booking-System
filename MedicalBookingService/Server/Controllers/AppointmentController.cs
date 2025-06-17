@@ -28,6 +28,7 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("book")]
+        [Authorize(Roles = "Patient")]
         public async Task<IActionResult> CreateAppointment([FromBody] AppointmentDto appointmentDto)
         {
             var appointment = new Appointment
@@ -60,6 +61,7 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("{id}/approve")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveAppointment(int id, string adminId)
         {
             var appointment = await _db.Appointments.FindAsync(id);
@@ -81,6 +83,7 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("{id}/reject")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> RejectAppointment(int id, string adminId)
         {
             var appointment = await _db.Appointments.FindAsync(id);
