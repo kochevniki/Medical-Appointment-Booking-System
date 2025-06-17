@@ -14,7 +14,7 @@
     <div class="alert alert-success">@_successMessage</div>
 }
 
-<EditForm Model="_model" OnValidSubmit="HandleSignup">
+<EditForm Model="_model" OnValidSubmit="HandleSignup" OnInvalidSubmit="ScrollToTop">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -55,6 +55,12 @@
     </div>
 
     <div class="mb-3">
+        <label>Phone Number</label>
+        <InputText @bind-Value="_model.PhoneNumber" id="PhoneNumber" class="form-control" />
+        <small class="text-muted">Format: 123-456-7890</small>
+    </div>
+
+    <div class="mb-3">
         <label>Date of Birth</label>
         <InputDate @bind-Value="_model.DateOfBirth" class="form-control" />
     </div>
@@ -87,8 +93,6 @@
     private PatientSignupModel _model = new();
     private string? _errorMessage;
     private string _successMessage = string.Empty;
-    //private bool _isLoading = false;
-
     private IBrowserFile? _govIdFile;
     private IBrowserFile? _insuranceCardFile;
 
@@ -125,7 +129,6 @@
 
     private async Task HandleSignup()
     {
-        //_isLoading = true;
         _errorMessage = null;
 
         try
@@ -169,10 +172,6 @@
         {
             _errorMessage = $"Unexpected error: {ex.Message}";
         }
-        finally
-        {
-            //_isLoading = false;
-        }
     }
 
     private bool IsAllowedFileType(IBrowserFile file)
@@ -213,11 +212,17 @@
         {
             await JS.InvokeVoidAsync("signupEnhancements.initSSNFields");
             await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete");
+            await JS.InvokeVoidAsync("signupEnhancements.initPhoneNumberField");
         }
     }
 
     class UploadResult
     {
         public string Url { get; set; } = string.Empty;
+    }
+
+    private async Task ScrollToTop(EditContext context)
+    {
+        await JS.InvokeVoidAsync("window.scrollTo", new object[] { 0, 0 });
     }
 }

@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null) return Unauthorized("Invalid credentials");
+        if (user == null) return Unauthorized("User with this is email does not exist in the system.");
 
         var result = await _signInManager.PasswordSignInAsync(
             user.UserName, model.Password, isPersistent: false, lockoutOnFailure: false);
@@ -37,7 +37,7 @@ public class AuthController : ControllerBase
             return Ok();
         }
        
-        return Unauthorized();
+        return Unauthorized("Invalid credentials.");
     }
 
     [HttpPost("logout")]

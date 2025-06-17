@@ -45,7 +45,8 @@
             }
             else
             {
-                await JS.InvokeVoidAsync("showErrorMessage", "Invalid credentials.");
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                await JS.InvokeVoidAsync("showErrorMessage", errorMessage);
             }
         }
         catch

@@ -38,7 +38,8 @@ namespace MedicalBookingService.Server.Controllers
                 UserName = model.Email,
                 Email = model.Email,
                 EmailConfirmed = true,
-                Role = "Patient"
+                Role = "Patient",
+                PhoneNumber = model.PhoneNumber
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -56,7 +57,7 @@ namespace MedicalBookingService.Server.Controllers
                 DateOfBirth = model.DateOfBirth,
                 Address = model.Address,
                 GovernmentIdUrl = model.GovernmentIdUrl,
-                InsuranceCardUrl = model.InsuranceCardUrl,
+                InsuranceCardUrl = model.InsuranceCardUrl
             };
 
             _db.PatientProfiles.Add(profile);

@@ -21,6 +21,24 @@
         });
     },
 
+    initPhoneNumberField: function () {
+        const el = document.getElementById('PhoneNumber');
+        if (!el) return;
+
+        el.addEventListener('input', function () {
+            let value = el.value.replace(/\D/g, '');
+            if (value.length > 10) value = value.slice(0, 10);
+
+            if (value.length > 6) {
+                value = `${value.slice(0, 3)}-${value.slice(3, 6)}-${value.slice(6)}`;
+            } else if (value.length > 3) {
+                value = `${value.slice(0, 3)}-${value.slice(3)}`;
+            }
+
+            el.value = value;
+        });
+    },
+
     initAddressAutocomplete: async function () {
         const input = document.getElementById('usps-address');
         if (!input) return;

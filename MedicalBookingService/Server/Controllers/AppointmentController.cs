@@ -70,9 +70,6 @@ namespace MedicalBookingService.Server.Controllers
             if (appointment.IsApproved)
                 return BadRequest("Appointment is already approved.");
 
-            //var adminId = _userManager.GetUserId(User); // Get logged-in admin's ID
-            _logger.LogInformation($"UserID: {adminId}");
-
             appointment.IsApproved = true;
             appointment.ApprovedAt = DateTime.UtcNow;
             appointment.ApprovedByAdminId = adminId;
@@ -101,51 +98,79 @@ namespace MedicalBookingService.Server.Controllers
             return Ok();
         }
 
-        [HttpGet("slots")]
-        public async Task<IActionResult> GetAvailableSlots(int officeId, DateTime date)
+        [HttpPost("admin-block")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminBlockAppointment([FromBody] AppointmentDto dto)
         {
-            var schedule = await _db.ScheduleConfigs
-                .FirstOrDefaultAsync(c => c.OfficeId == officeId);
+            if (string.IsNullOrWhiteSpace(dto.Title) || dto.Start == default || dto.End == default || dto.OfficeId <= 0 || string.IsNullOrWhiteSpace(dto.PatientId))
+                return BadRequest("Missing required fields.");
 
-            if (schedule == null)
-                return BadRequest("Schedule not configured.");
-
-            var startTime = date.Date + schedule.WorkStart;
-            var endTime = date.Date + schedule.WorkEnd;
-
-            var doctorsCount = await _db.DoctorProfiles.CountAsync(d => d.OfficeId == officeId);
-
-            var existingAppointments = await _db.Appointments
-                .Where(a => a.OfficeId == officeId &&
-                            a.Start.Date == date.Date &&
-                            a.IsApproved)
-                .ToListAsync();
-
-            var slots = new List<AppointmentSlotDto>();
-
-            for (var slotStart = startTime; slotStart < endTime; slotStart = slotStart.AddMinutes(30))
+            var appointment = new Appointment
             {
-                var slotEnd = slotStart.AddMinutes(30);
+                Title = dto.Title,
+                Start = dto.Start,
+                End = dto.End,
+                OfficeId = dto.OfficeId,
+                PatientId = dto.PatientId, // Use admin's user ID
+                DoctorId = null,
+                Notes = null,
+                IsApproved = true,
+                IsBlocked = true,
+                ApprovedAt = DateTime.UtcNow,
+                ApprovedByAdminId = dto.PatientId // Admin's user ID
+            };
 
-                var overlappingAppointments = existingAppointments
-                    .Where(a =>
-                        a.Start < slotEnd && a.End > slotStart
-                    ).ToList();
+            _db.Appointments.Add(appointment);
+            await _db.SaveChangesAsync();
 
-                bool isBlocked = overlappingAppointments.Any(a => a.DoctorId == null && a.Title == "Busy");
-
-                slots.Add(new AppointmentSlotDto
-                {
-                    Start = slotStart,
-                    End = slotEnd,
-                    BookedCount = overlappingAppointments.Count(a => a.DoctorId != null),
-                    MaxCapacity = doctorsCount,
-                    IsBlocked = isBlocked
-                });
-            }
-
-            return Ok(slots);
+            return Ok(new { appointment.Id });
         }
+
+        //[HttpGet("slots")]
+        //public async Task<IActionResult> GetAvailableSlots(int officeId, DateTime date)
+        //{
+        //    var schedule = await _db.ScheduleConfigs
+        //        .FirstOrDefaultAsync(c => c.OfficeId == officeId);
+
+        //    if (schedule == null)
+        //        return BadRequest("Schedule not configured.");
+
+        //    var startTime = date.Date + schedule.WorkStart;
+        //    var endTime = date.Date + schedule.WorkEnd;
+
+        //    var doctorsCount = await _db.DoctorProfiles.CountAsync(d => d.OfficeId == officeId);
+
+        //    var existingAppointments = await _db.Appointments
+        //        .Where(a => a.OfficeId == officeId &&
+        //                    a.Start.Date == date.Date &&
+        //                    a.IsApproved)
+        //        .ToListAsync();
+
+        //    var slots = new List<AppointmentSlotDto>();
+
+        //    for (var slotStart = startTime; slotStart < endTime; slotStart = slotStart.AddMinutes(30))
+        //    {
+        //        var slotEnd = slotStart.AddMinutes(30);
+
+        //        var overlappingAppointments = existingAppointments
+        //            .Where(a =>
+        //                a.Start < slotEnd && a.End > slotStart
+        //            ).ToList();
+
+        //        bool isBlocked = overlappingAppointments.Any(a => a.DoctorId == null && a.Title == "Busy");
+
+        //        slots.Add(new AppointmentSlotDto
+        //        {
+        //            Start = slotStart,
+        //            End = slotEnd,
+        //            BookedCount = overlappingAppointments.Count(a => a.DoctorId != null),
+        //            MaxCapacity = doctorsCount,
+        //            IsBlocked = isBlocked
+        //        });
+        //    }
+
+        //    return Ok(slots);
+        //}
 
         [HttpGet("department/{departmentId}")]
         public async Task<IActionResult> GetDepartmentAppointments(int departmentId)
@@ -159,6 +184,8 @@ namespace MedicalBookingService.Server.Controllers
                     Start = a.Start,
                     End = a.End,
                     Notes = a.Notes,
+                    IsApproved = a.IsApproved,
+                    IsRejected = a.IsRejected,
                     PatientId = a.PatientId,
                     DoctorId = a.DoctorId,
                     OfficeId = a.OfficeId
