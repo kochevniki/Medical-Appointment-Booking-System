@@ -37,7 +37,7 @@ namespace MedicalBookingService.Server.Controllers
             {
                 UserName = model.Email,
                 Email = model.Email,
-                EmailConfirmed = true,
+                //EmailConfirmed = true,
                 Role = "Patient",
                 PhoneNumber = model.PhoneNumber
             };
@@ -63,16 +63,16 @@ namespace MedicalBookingService.Server.Controllers
             _db.PatientProfiles.Add(profile);
             await _db.SaveChangesAsync();
 
-           // // Generate email confirmation token
-           // var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-           // var confirmationLink = Url.Action(
-           //     "ConfirmEmail", "Account",
-           //     new { userId = user.Id, token },
-           //     protocol: HttpContext.Request.Scheme);
+            // Generate email confirmation token
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var confirmationLink = Url.Action(
+                "ConfirmEmail", "Account",
+                new { userId = user.Id, token },
+                protocol: HttpContext.Request.Scheme);
 
-           //// Send confirmation email
-           //var body = $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>Confirm Email</a>";
-           // await _emailService.SendEmailAsync(user.Email, "Confirm your email to register your account", body);
+            // Send confirmation email
+            var body = $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>Confirm Email</a>";
+            await _emailService.SendEmailAsync(user.Email, "Confirm your email to register your account", body);
 
             //return Ok("Signup successful. Please check your email to confirm your account.");
             return Ok(new

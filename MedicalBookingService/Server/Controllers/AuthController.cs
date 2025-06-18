@@ -29,6 +29,8 @@ public class AuthController : ControllerBase
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user == null) return Unauthorized("User with this is email does not exist in the system.");
 
+        if(!user.EmailConfirmed) return Unauthorized("Email not confirmed. Please check your inbox.");
+
         var result = await _signInManager.PasswordSignInAsync(
             user.UserName, model.Password, isPersistent: false, lockoutOnFailure: false);
 

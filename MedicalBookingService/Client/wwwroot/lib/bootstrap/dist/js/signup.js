@@ -44,7 +44,7 @@
         if (!input) return;
 
         try {
-            const response = await fetch('/api/GoogleApi/key');
+            const response = await fetch('https://localhost:7136/api/GoogleApi/key');
             if (!response.ok) throw new Error('Failed to load API key');
             const apiKey = await response.text();
 

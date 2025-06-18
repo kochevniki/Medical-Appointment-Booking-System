@@ -76,7 +76,22 @@ namespace MedicalBookingService.Server.Controllers
 
             await _db.SaveChangesAsync();
 
-            return Ok();
+            var officeName = await _db.Offices
+                .Where(o => o.Id == appointment.OfficeId)
+                .Select(o => o.Name)
+                .FirstOrDefaultAsync();
+
+            var patientEmail = await _db.Users
+                .Where(u => u.Id == appointment.PatientId)
+                .Select(u => u.Email)
+                .FirstOrDefaultAsync();
+            if (patientEmail != null)
+            {
+                await _emailService.SendEmailAsync(patientEmail, $"Appointment Approved - {officeName}",
+                    $"Your appointment from {appointment.Start} to {appointment.End} has been approved by the admin.");
+            }
+
+                return Ok();
         }
 
         [HttpPost("{id}/reject")]
@@ -94,6 +109,22 @@ namespace MedicalBookingService.Server.Controllers
             appointment.ApprovedByAdminId = adminId;
 
             await _db.SaveChangesAsync();
+
+            var officeName = await _db.Offices
+                .Where(o => o.Id == appointment.OfficeId)
+                .Select(o => o.Name)
+                .FirstOrDefaultAsync();
+
+            var patientEmail = await _db.Users
+                .Where(u => u.Id == appointment.PatientId)
+                .Select(u => u.Email)
+                .FirstOrDefaultAsync();
+            if (patientEmail != null)
+            {
+                await _emailService.SendEmailAsync(patientEmail, $"Appointment Rejected - {officeName}",
+                    $"Your appointment from {appointment.Start} to {appointment.End} has been rejected by the admin. " +
+                    $"Please contact for more details.");
+            }
 
             return Ok();
         }
@@ -125,52 +156,6 @@ namespace MedicalBookingService.Server.Controllers
 
             return Ok(new { appointment.Id });
         }
-
-        //[HttpGet("slots")]
-        //public async Task<IActionResult> GetAvailableSlots(int officeId, DateTime date)
-        //{
-        //    var schedule = await _db.ScheduleConfigs
-        //        .FirstOrDefaultAsync(c => c.OfficeId == officeId);
-
-        //    if (schedule == null)
-        //        return BadRequest("Schedule not configured.");
-
-        //    var startTime = date.Date + schedule.WorkStart;
-        //    var endTime = date.Date + schedule.WorkEnd;
-
-        //    var doctorsCount = await _db.DoctorProfiles.CountAsync(d => d.OfficeId == officeId);
-
-        //    var existingAppointments = await _db.Appointments
-        //        .Where(a => a.OfficeId == officeId &&
-        //                    a.Start.Date == date.Date &&
-        //                    a.IsApproved)
-        //        .ToListAsync();
-
-        //    var slots = new List<AppointmentSlotDto>();
-
-        //    for (var slotStart = startTime; slotStart < endTime; slotStart = slotStart.AddMinutes(30))
-        //    {
-        //        var slotEnd = slotStart.AddMinutes(30);
-
-        //        var overlappingAppointments = existingAppointments
-        //            .Where(a =>
-        //                a.Start < slotEnd && a.End > slotStart
-        //            ).ToList();
-
-        //        bool isBlocked = overlappingAppointments.Any(a => a.DoctorId == null && a.Title == "Busy");
-
-        //        slots.Add(new AppointmentSlotDto
-        //        {
-        //            Start = slotStart,
-        //            End = slotEnd,
-        //            BookedCount = overlappingAppointments.Count(a => a.DoctorId != null),
-        //            MaxCapacity = doctorsCount,
-        //            IsBlocked = isBlocked
-        //        });
-        //    }
-
-        //    return Ok(slots);
-        //}
 
         [HttpGet("department/{departmentId}")]
         public async Task<IActionResult> GetDepartmentAppointments(int departmentId)
@@ -208,10 +193,11 @@ namespace MedicalBookingService.Server.Controllers
                 })
                 .ToListAsync();
 
-            // Get all appointments for this slot in this office
+            // Get all appointments for this slot in this office that are approved and not rejected/blocked
             var overlappingAppointments = await _db.Appointments
                 .Where(a => a.OfficeId == officeId &&
                             a.DoctorId != null &&
+                            a.IsApproved && !a.IsRejected && !a.IsBlocked &&
                             a.Start < end && a.End > start)
                 .Select(a => a.DoctorId)
                 .ToListAsync();

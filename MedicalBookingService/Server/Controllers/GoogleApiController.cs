@@ -19,7 +19,7 @@ namespace MedicalBookingService.Server.Controllers
         {
             var key = _config["Google:PlacesApiKey"];
             if (string.IsNullOrEmpty(key)) return NotFound();
-            return Ok(key);
+            return Content(key, "text/plain");
         }
     }
 }

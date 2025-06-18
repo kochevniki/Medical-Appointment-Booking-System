@@ -156,7 +156,7 @@
                 await Http.PostAsJsonAsync("/api/account/update-file-urls", fileUpdateModel);
 
                 await Task.Delay(3000);
-                Navigation.NavigateTo("/login");
+                Navigation.NavigateTo("/login?signup=success");
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
             {
