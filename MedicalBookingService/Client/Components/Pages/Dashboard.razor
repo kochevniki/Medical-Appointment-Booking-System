@@ -5,50 +5,52 @@
 @inject NavigationManager Navigation
 @inject AuthClientService AuthClientService
 
-<h3>Dashboard</h3>
-@if (!IsAuthenticated)
-{
-    <p>Pulling your information</p>
-}
-else if (IsAuthenticated)
-{
-    <p>User is authenticated.</p>
-    @if (UserRoles.Contains("Admin"))
-    {
-        <p>Welcome Admin! You can manage appointments.</p>
-    }
-    else if (UserRoles.Contains("Doctor"))
-    {
-        <p>Welcome Doctor! You can view your schedule.</p>
-    }
-    else if (UserRoles.Contains("Patient"))
-    {
-        <p>Welcome Patient! You can request an appointment.</p>
-    }
-    else
-    {
-        <p>Unknown role.</p>
-    }
-}
-else
-{
-    <p>User is NOT authenticated.</p>
-}
+<div class="mt-4">
+	<h3>Dashboard</h3>
+	@if (!IsAuthenticated)
+	{
+		<p>Pulling your information</p>
+	}
+	else if (IsAuthenticated)
+	{
+		<p>User is authenticated.</p>
+		@if (UserRoles.Contains("Admin"))
+		{
+			<p>Welcome Admin! You can manage appointments.</p>
+		}
+		else if (UserRoles.Contains("Doctor"))
+		{
+			<p>Welcome Doctor! You can view your schedule.</p>
+		}
+		else if (UserRoles.Contains("Patient"))
+		{
+			<p>Welcome Patient! You can request an appointment.</p>
+		}
+		else
+		{
+			<p>Unknown role.</p>
+		}
+	}
+	else
+	{
+		<p>User is NOT authenticated.</p>
+	}
+</div>
 
 @code {
 
-    private UserInfo? CurrentUser;
-    private bool IsAuthenticated = false;
-    private List<string> UserRoles = new();
+	private UserInfo? CurrentUser;
+	private bool IsAuthenticated = false;
+	private List<string> UserRoles = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        CurrentUser = await AuthClientService.GetCurrentUserAsync();
+	protected override async Task OnInitializedAsync()
+	{
+		CurrentUser = await AuthClientService.GetCurrentUserAsync();
 
-        if (CurrentUser != null)
-        {
-            IsAuthenticated = true;
-            UserRoles = CurrentUser.Roles;
-        }
-    }
+		if (CurrentUser != null)
+		{
+			IsAuthenticated = true;
+			UserRoles = CurrentUser.Roles;
+		}
+	}
 }
