@@ -8,3 +8,18 @@ body {
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 }
+
+:root {
+    --background: #F7F9FA;
+}
+
+body {
+    background-color: var(--background);
+    color: var(--text-main);
+}
+
+input[type="date"][readonly] {
+    background-color: #e9ecef; /* soft gray background */
+    color: #6c757d; /* muted text */
+    cursor: not-allowed; /* makes it feel non-interactive */
+}

@@ -144,14 +144,26 @@
 							<input class="form-control" @bind-value="AdminBlockModel.Title" required />
 						</div>
 						<div class="mb-3">
+							<label class="form-label">Date</label>
+							<input type="date"
+								   class="form-control"
+								   value="@AdminBlockModel.Start.ToString("yyyy-MM-dd")"
+								   readonly />
+						</div>
+						<div class="mb-3">
 							<label class="form-label">Start</label>
-							<input type="datetime-local" class="form-control"
+							<input type="time" class="form-control"
 								   @bind-value="AdminBlockModel.Start"
 								   min="@GetTodayAt(9, 0)" max="@GetTodayAt(17, 0)" />
 						</div>
+						@if (!string.IsNullOrEmpty(TimeValidationMessage))
+						{
+							<div class="alert alert-warning">@TimeValidationMessage</div>
+						}
+
 						<div class="mb-3">
 							<label class="form-label">End</label>
-							<input type="datetime-local" class="form-control"
+							<input type="time" class="form-control"
 								   @bind-value="AdminBlockModel.End"
 								   min="@GetTodayAt(9, 30)" max="@GetTodayAt(17, 0)" />
 						</div>
@@ -426,6 +438,20 @@
 		&& AdminBlockModel.Start.TimeOfDay >= TimeSpan.FromHours(9)
 		&& AdminBlockModel.End.TimeOfDay <= TimeSpan.FromHours(17)
 		&& AdminBlockModel.End > AdminBlockModel.Start;
+
+	private string? TimeValidationMessage
+	{
+		get
+		{
+			if (AdminBlockModel.Start.TimeOfDay < TimeSpan.FromHours(9))
+				return "Start time cannot be earlier than 9:00 AM.";
+			if (AdminBlockModel.End.TimeOfDay > TimeSpan.FromHours(17))
+				return "End time cannot be later than 5:00 PM.";
+			if (AdminBlockModel.End <= AdminBlockModel.Start)
+				return "End time must be after start time.";
+			return null;
+		}
+	}
 
 	// New common method to close all modals and reset related state
 	private void CloseModals()
