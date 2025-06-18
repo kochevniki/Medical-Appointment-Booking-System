@@ -7,222 +7,232 @@
 @using MedicalBookingService.Shared.Models.DTOs
 @inject ILogger<Signup> _logger
 
-<h3>Sign Up (Patient)</h3>
+<div class="mt-4">
+	<h3 class="text-center">Sign Up (Patient)</h3>
 
-@if (!string.IsNullOrEmpty(_successMessage))
-{
-    <div class="alert alert-success">@_successMessage</div>
-}
+	@if (!string.IsNullOrEmpty(_successMessage))
+	{
+		<div class="alert alert-success">@_successMessage</div>
+	}
+	<div class="container">
+		<div class="row justify-content-center">
+			<div class="col-lg-8">
+				<EditForm Model="_model" OnValidSubmit="HandleSignup" OnInvalidSubmit="ScrollToTop">
+					<DataAnnotationsValidator />
+					<ValidationSummary />
 
-<EditForm Model="_model" OnValidSubmit="HandleSignup" OnInvalidSubmit="ScrollToTop">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label>Email</label>
+							<InputText @bind-Value="_model.Email" class="form-control" />
+							<small class="text-muted">Email will have to be verified in order to login.</small>
+						</div>
 
-    <div class="mb-3">
-        <label>Email</label>
-        <InputText @bind-Value="_model.Email" class="form-control" />
-        <small class="text-muted">Email will have to be verified in order to login.</small>
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Password</label>
+							<InputText @bind-Value="_model.Password" type="password" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>Password</label>
-        <InputText @bind-Value="_model.Password" type="password" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Confirm Password</label>
+							<InputText @bind-Value="_model.ConfirmPassword" type="password" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>Confirm Password</label>
-        <InputText @bind-Value="_model.ConfirmPassword" type="password" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>First Name</label>
+							<InputText @bind-Value="_model.FirstName" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>First Name</label>
-        <InputText @bind-Value="_model.FirstName" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Last Name</label>
+							<InputText @bind-Value="_model.LastName" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>Last Name</label>
-        <InputText @bind-Value="_model.LastName" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>SSN</label>
+							<InputText @bind-Value="_model.SSN" id="SSN" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>SSN</label>
-        <InputText @bind-Value="_model.SSN" id="SSN" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Confirm SSN</label>
+							<InputText @bind-Value="_model.ConfirmSSN" id="ConfirmSSN" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>Confirm SSN</label>
-        <InputText @bind-Value="_model.ConfirmSSN" id="ConfirmSSN" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Phone Number</label>
+							<InputText @bind-Value="_model.PhoneNumber" id="PhoneNumber" class="form-control" />
+							<small class="text-muted">Format: 123-456-7890</small>
+						</div>
 
-    <div class="mb-3">
-        <label>Phone Number</label>
-        <InputText @bind-Value="_model.PhoneNumber" id="PhoneNumber" class="form-control" />
-        <small class="text-muted">Format: 123-456-7890</small>
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Date of Birth</label>
+							<InputDate @bind-Value="_model.DateOfBirth" class="form-control" />
+						</div>
 
-    <div class="mb-3">
-        <label>Date of Birth</label>
-        <InputDate @bind-Value="_model.DateOfBirth" class="form-control" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Address</label>
+							<InputText @bind-Value="_model.Address" id="usps-address" class="form-control" />
+							<small class="text-muted">Start typing to get Google address suggestions.</small>
+						</div>
 
-    <div class="mb-3">
-        <label>Address</label>
-        <InputText @bind-Value="_model.Address" id="usps-address" class="form-control" />
-        <small class="text-muted">Start typing to get Google address suggestions.</small>
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Upload Government ID (optional)</label>
+							<InputFile OnChange="StoreGovIdFile" accept=".jpg,.jpeg,.png,.pdf" />
+						</div>
 
-    <div class="mb-3">
-        <label>Upload Government ID (optional)</label>
-        <InputFile OnChange="StoreGovIdFile" accept=".jpg,.jpeg,.png,.pdf" />
-    </div>
+						<div class="col-md-6 mb-3">
+							<label>Upload Insurance Card (optional)</label>
+							<InputFile OnChange="StoreInsuranceCardFile" accept=".jpg,.jpeg,.png,.pdf" />
+						</div>
+					</div>
+					<div class="d-flex justify-content-center mt-4">
+						<button type="submit" class="btn btn-primary">Sign Up</button>
+					</div>
+				</EditForm>
+			</div>
+		</div>
+	</div>
 
-    <div class="mb-3">
-        <label>Upload Insurance Card (optional)</label>
-        <InputFile OnChange="StoreInsuranceCardFile" accept=".jpg,.jpeg,.png,.pdf" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Sign Up</button>
-</EditForm>
-
-@if (_errorMessage != null)
-{
-    <div class="alert alert-danger mt-2">@_errorMessage</div>
-}
+	@if (_errorMessage != null)
+	{
+		<div class="alert alert-danger mt-2">@_errorMessage</div>
+	}
+</div>
 
 @code {
-    private PatientSignupModel _model = new();
-    private string? _errorMessage;
-    private string _successMessage = string.Empty;
-    private IBrowserFile? _govIdFile;
-    private IBrowserFile? _insuranceCardFile;
+	private PatientSignupModel _model = new();
+	private string? _errorMessage;
+	private string _successMessage = string.Empty;
+	private IBrowserFile? _govIdFile;
+	private IBrowserFile? _insuranceCardFile;
 
-    protected override void OnInitialized()
-    {
-        _model.DateOfBirth = DateTime.Today;
-    }
+	protected override void OnInitialized()
+	{
+		_model.DateOfBirth = DateTime.Today;
+	}
 
-    private void StoreGovIdFile(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        if (IsAllowedFileType(file))
-        {
-            _govIdFile = file;
-        }
-        else
-        {
-            _errorMessage = "Invalid file type for Government ID. Only JPG, JPEG, PNG, and PDF are allowed.";
-        }
-    }
+	private void StoreGovIdFile(InputFileChangeEventArgs e)
+	{
+		var file = e.File;
+		if (IsAllowedFileType(file))
+		{
+			_govIdFile = file;
+		}
+		else
+		{
+			_errorMessage = "Invalid file type for Government ID. Only JPG, JPEG, PNG, and PDF are allowed.";
+		}
+	}
 
-    private void StoreInsuranceCardFile(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        if (IsAllowedFileType(file))
-        {
-            _insuranceCardFile = file;
-        }
-        else
-        {
-            _errorMessage = "Invalid file type for Insurance Card. Only JPG, JPEG, PNG, and PDF are allowed.";
-        }
-    }
+	private void StoreInsuranceCardFile(InputFileChangeEventArgs e)
+	{
+		var file = e.File;
+		if (IsAllowedFileType(file))
+		{
+			_insuranceCardFile = file;
+		}
+		else
+		{
+			_errorMessage = "Invalid file type for Insurance Card. Only JPG, JPEG, PNG, and PDF are allowed.";
+		}
+	}
 
-    private async Task HandleSignup()
-    {
-        _errorMessage = null;
+	private async Task HandleSignup()
+	{
+		_errorMessage = null;
 
-        try
-        {
-            // Send signup data
-            var response = await Http.PostAsJsonAsync("/api/account/signup", _model);
+		try
+		{
+			// Send signup data
+			var response = await Http.PostAsJsonAsync("/api/account/signup", _model);
 
-            if (response.IsSuccessStatusCode)
-            {
-                _successMessage = "Signup successful. Please check your email to confirm your account.";
-                var signupData = await response.Content.ReadFromJsonAsync<SignupResponse>();
-                if (_govIdFile != null && signupData.UserId != null)
-                    _model.GovernmentIdUrl = await UploadFileAsync(_govIdFile, signupData.UserId);
+			if (response.IsSuccessStatusCode)
+			{
+				_successMessage = "Signup successful. Please check your email to confirm your account.";
+				var signupData = await response.Content.ReadFromJsonAsync<SignupResponse>();
+				if (_govIdFile != null && signupData.UserId != null)
+					_model.GovernmentIdUrl = await UploadFileAsync(_govIdFile, signupData.UserId);
 
-                if (_insuranceCardFile != null && signupData.UserId != null)
-                    _model.InsuranceCardUrl = await UploadFileAsync(_insuranceCardFile, signupData.UserId);
+				if (_insuranceCardFile != null && signupData.UserId != null)
+					_model.InsuranceCardUrl = await UploadFileAsync(_insuranceCardFile, signupData.UserId);
 
-                var fileUpdateModel = new FileUrlsUpdateModel
-                {
-                    UserId = signupData.UserId,
-                    GovernmentIdUrl = _model.GovernmentIdUrl,
-                    InsuranceCardUrl = _model.InsuranceCardUrl
-                };
+				var fileUpdateModel = new FileUrlsUpdateModel
+				{
+					UserId = signupData.UserId,
+					GovernmentIdUrl = _model.GovernmentIdUrl,
+					InsuranceCardUrl = _model.InsuranceCardUrl
+				};
 
-                await Http.PostAsJsonAsync("/api/account/update-file-urls", fileUpdateModel);
+				await Http.PostAsJsonAsync("/api/account/update-file-urls", fileUpdateModel);
 
-                await Task.Delay(3000);
-                Navigation.NavigateTo("/login?signup=success");
-            }
-            else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
-            {
-                _errorMessage = "An account with this email already exists.";
-            }
-            else
-            {
-                var error = await response.Content.ReadAsStringAsync();
-                _errorMessage = $"Signup failed: {error}";
-            }
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = $"Unexpected error: {ex.Message}";
-        }
-    }
+				await Task.Delay(3000);
+				Navigation.NavigateTo("/login?signup=success");
+			}
+			else if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+			{
+				_errorMessage = "An account with this email already exists.";
+			}
+			else
+			{
+				var error = await response.Content.ReadAsStringAsync();
+				_errorMessage = $"Signup failed: {error}";
+			}
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = $"Unexpected error: {ex.Message}";
+		}
+	}
 
-    private bool IsAllowedFileType(IBrowserFile file)
-    {
-        var allowed = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
-        var ext = Path.GetExtension(file.Name).ToLowerInvariant();
-        return allowed.Contains(ext);
-    }
+	private bool IsAllowedFileType(IBrowserFile file)
+	{
+		var allowed = new[] { ".jpg", ".jpeg", ".png", ".pdf" };
+		var ext = Path.GetExtension(file.Name).ToLowerInvariant();
+		return allowed.Contains(ext);
+	}
 
-    private async Task<string?> UploadFileAsync(IBrowserFile file, string userId)
-    {
-        try
-        {
-            using var content = new MultipartFormDataContent();
-            var stream = file.OpenReadStream(10 * 1024 * 1024); // 10MB max
-            content.Add(new StreamContent(stream), "file", file.Name);
-            content.Add(new StringContent(userId), "userId");
-            _logger.LogInformation($"folderId: {userId}");
+	private async Task<string?> UploadFileAsync(IBrowserFile file, string userId)
+	{
+		try
+		{
+			using var content = new MultipartFormDataContent();
+			var stream = file.OpenReadStream(10 * 1024 * 1024); // 10MB max
+			content.Add(new StreamContent(stream), "file", file.Name);
+			content.Add(new StringContent(userId), "userId");
+			_logger.LogInformation($"folderId: {userId}");
 
-            var response = await Http.PostAsync("/api/file/upload", content);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<UploadResult>();
-                return result?.Url;
-            }
-        }
-        catch (Exception ex)
-        {
-            _errorMessage = $"Failed to upload file {file.Name}: {ex.Message}";
-        }
+			var response = await Http.PostAsync("/api/file/upload", content);
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<UploadResult>();
+				return result?.Url;
+			}
+		}
+		catch (Exception ex)
+		{
+			_errorMessage = $"Failed to upload file {file.Name}: {ex.Message}";
+		}
 
-        return null;
-    }
+		return null;
+	}
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JS.InvokeVoidAsync("signupEnhancements.initSSNFields");
-            await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete");
-            await JS.InvokeVoidAsync("signupEnhancements.initPhoneNumberField");
-        }
-    }
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JS.InvokeVoidAsync("signupEnhancements.initSSNFields");
+			await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete");
+			await JS.InvokeVoidAsync("signupEnhancements.initPhoneNumberField");
+		}
+	}
 
-    class UploadResult
-    {
-        public string Url { get; set; } = string.Empty;
-    }
+	class UploadResult
+	{
+		public string Url { get; set; } = string.Empty;
+	}
 
-    private async Task ScrollToTop(EditContext context)
-    {
-        await JS.InvokeVoidAsync("window.scrollTo", new object[] { 0, 0 });
-    }
+	private async Task ScrollToTop(EditContext context)
+	{
+		await JS.InvokeVoidAsync("window.scrollTo", new object[] { 0, 0 });
+	}
 }

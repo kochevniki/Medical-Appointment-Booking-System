@@ -1,98 +1,100 @@
-﻿@page "/login"  
-@using MedicalBookingService.Server.Models.DTOs  
-@inject IJSRuntime JS  
-@inject NavigationManager Navigation  
-@inject HttpClient Http  
+﻿@page "/login"
+@using MedicalBookingService.Server.Models.DTOs
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject HttpClient Http
 
-<h3>Login</h3>  
+<div class="mt-4">
+	<h3>Login</h3>
 
-<form @onsubmit="HandleLogin">  
-    <div id="errorMessage" class="alert alert-danger" style="display: none;"></div>  
+	<form @onsubmit="HandleLogin">
+		<div id="errorMessage" class="alert alert-danger" style="display: none;"></div>
 
-    <div class="mb-3">  
-        <label for="email" class="form-label">Email</label>  
-        <input id="email" name="email" type="email" class="form-control" @bind="email" required />  
-    </div>  
+		<div class="mb-3">
+			<label for="email" class="form-label">Email</label>
+			<input id="email" name="email" type="email" class="form-control" @bind="email" required />
+		</div>
 
-    <div class="mb-3">  
-        <label for="password" class="form-label">Password</label>  
-        <input id="password" name="password" type="password" class="form-control" @bind="password" required />  
-    </div>  
+		<div class="mb-3">
+			<label for="password" class="form-label">Password</label>
+			<input id="password" name="password" type="password" class="form-control" @bind="password" required />
+		</div>
 
-    <button type="submit" class="btn btn-primary">Login</button>  
-</form>  
+		<button type="submit" class="btn btn-primary">Login</button>
+	</form>
 
-@if (showSignupSuccessModal)
-{
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Signup Successful</h5>
-                    <button type="button" class="btn-close" @onclick="CloseSignupSuccessModal"></button>
-                </div>
-                <div class="modal-body">
-                    Signup successful. Please check your email to confirm your account.
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" @onclick="CloseSignupSuccessModal">OK</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-}
+	@if (showSignupSuccessModal)
+	{
+		<div class="modal show d-block" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header bg-success text-white">
+						<h5 class="modal-title">Signup Successful</h5>
+						<button type="button" class="btn-close" @onclick="CloseSignupSuccessModal"></button>
+					</div>
+					<div class="modal-body">
+						Signup successful. Please check your email to confirm your account.
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" @onclick="CloseSignupSuccessModal">OK</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show"></div>
+	}
+</div>
 
-@code {  
-    private string email = string.Empty;  
-    private string password = string.Empty;  
-    private bool showSignupSuccessModal = false;  
+@code {
+	private string email = string.Empty;
+	private string password = string.Empty;
+	private bool showSignupSuccessModal = false;
 
-    protected override void OnInitialized()
-    {
-        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
-        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("signup", out var value) && value == "success")
-        {
-            showSignupSuccessModal = true;
-        }
-    }
+	protected override void OnInitialized()
+	{
+		var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+		if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("signup", out var value) && value == "success")
+		{
+			showSignupSuccessModal = true;
+		}
+	}
 
-    private async Task HandleLogin()  
-    {  
-        var payload = new LoginDto  
-        {  
-            Email = email,  
-            Password = password  
-        };  
+	private async Task HandleLogin()
+	{
+		var payload = new LoginDto
+		{
+			Email = email,
+			Password = password
+		};
 
-        try  
-        {  
-            var response = await Http.PostAsJsonAsync("/api/auth/login", payload);  
+		try
+		{
+			var response = await Http.PostAsJsonAsync("/api/auth/login", payload);
 
-            if (response.IsSuccessStatusCode)  
-            {  
-                Navigation.NavigateTo("/Dashboard", forceLoad: true);  
-            }  
-            else  
-            {  
-                var errorMessage = await response.Content.ReadAsStringAsync();  
-                await JS.InvokeVoidAsync("showErrorMessage", errorMessage);  
-            }  
-        }  
-        catch  
-        {  
-            await JS.InvokeVoidAsync("showErrorMessage", "Something went wrong. Please try again.");  
-        }  
-        finally  
-        {  
-        }  
-    }
+			if (response.IsSuccessStatusCode)
+			{
+				Navigation.NavigateTo("/Dashboard", forceLoad: true);
+			}
+			else
+			{
+				var errorMessage = await response.Content.ReadAsStringAsync();
+				await JS.InvokeVoidAsync("showErrorMessage", errorMessage);
+			}
+		}
+		catch
+		{
+			await JS.InvokeVoidAsync("showErrorMessage", "Something went wrong. Please try again.");
+		}
+		finally
+		{
+		}
+	}
 
 
-    private void CloseSignupSuccessModal()
-    {
-        showSignupSuccessModal = false;
-        // Optionally remove the query string from the URL
-        Navigation.NavigateTo("/login", forceLoad: false);
-    }
+	private void CloseSignupSuccessModal()
+	{
+		showSignupSuccessModal = false;
+		// Optionally remove the query string from the URL
+		Navigation.NavigateTo("/login", forceLoad: false);
+	}
 }

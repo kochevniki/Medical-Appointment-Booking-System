@@ -12,472 +12,474 @@
 @inject NavigationManager Navigation
 @inject AuthClientService AuthClientService
 
+<div class="mt-4">
+	<h3>Appointment Calendar</h3>
 
-<h3>Appointment Calendar</h3>
+	@if (IsPatient || (!IsAdmin && !IsDoctor))
+	{
+		<div class="mb-3">
+			<label for="departmentSelect" class="form-label">Department</label>
+			<select id="departmentSelect" class="form-select" @onchange="OnDepartmentChanged">
+				<option value="">-- Select Department --</option>
+				@foreach (var dept in Departments)
+				{
+					<option value="@dept.Id">@dept.Name</option>
+				}
+			</select>
+		</div>
+	}
 
-@if (IsPatient || (!IsAdmin && !IsDoctor))
-{
-    <div class="mb-3">
-        <label for="departmentSelect" class="form-label">Department</label>
-        <select id="departmentSelect" class="form-select" @onchange="OnDepartmentChanged">
-            <option value="">-- Select Department --</option>
-            @foreach (var dept in Departments)
-            {
-                <option value="@dept.Id">@dept.Name</option>
-            }
-        </select>
-    </div>
-}
+	@if (IsAdmin || IsDoctor)
+	{
+		<h3>@currentDepartmentName</h3>
+	}
 
-@if (IsAdmin || IsDoctor)
-{
-    <h3>@currentDepartmentName</h3>
-}
+	@if (SelectedDepartmentId != null)
+	{
+		<RadzenScheduler Data="@appointments"
+						 TItem="AppointmentDto"
+						 AppointmentSelect="OnAppointmentSelected"
+						 SlotRender="OnSlotRender"
+						 SlotSelect="OnSlotSelect"
+						 StartProperty="Start"
+						 EndProperty="End"
+						 TextProperty="Title"
+						 SlotDuration="30"
+						 AllowSwitchView="true"
+						 AllowNavigate="true"
+						 Views="@views"
+						 Style="height: 700px;"
+						 Grouped="false"
+						 AppointmentRender="OnRenderAppointment">
+			<RadzenDayView />
+			<RadzenWeekView />
+			<RadzenMonthView />
+		</RadzenScheduler>
+	}
 
-@if (SelectedDepartmentId != null)
-{
-    <RadzenScheduler Data="@appointments"
-                     TItem="AppointmentDto"
-                     AppointmentSelect="OnAppointmentSelected"
-                     SlotRender="OnSlotRender"
-                     SlotSelect="OnSlotSelect"
-                     StartProperty="Start"
-                     EndProperty="End"
-                     TextProperty="Title"
-                     SlotDuration="30"
-                     AllowSwitchView="true"
-                     AllowNavigate="true"
-                     Views="@views"
-                     Style="height: 700px;"
-                     Grouped="false"
-                     AppointmentRender="OnRenderAppointment">
-        <RadzenDayView />
-        <RadzenWeekView />
-        <RadzenMonthView />
-    </RadzenScheduler>
-}
+	<!-- Manage Existing Appointment Modal -->
+	@if (ShowManageAppointmentModal && SelectedAppointment != null)
+	{
+		<div class="modal show d-block" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Manage Appointment</h5>
+						<button type="button" class="btn-close" @onclick="CloseModals"></button>
+					</div>
+					<div class="modal-body">
+						<p><strong>Appointment:</strong> @SelectedAppointment.Title</p>
+						<p><strong>Start:</strong> @SelectedAppointment.Start.ToString("yyyy-MM-dd HH:mm")</p>
+						<p><strong>End:</strong> @SelectedAppointment.End.ToString("yyyy-MM-dd HH:mm")</p>
+						<p><strong>Status:</strong> @(SelectedAppointment.IsApproved ? "Approved" : SelectedAppointment.IsRejected ? "Rejected" : "Pending")</p>
+					</div>
+					<div class="modal-footer">
+						@if (IsAdmin) // Show buttons only for admins
+						{
+							<button class="btn btn-success" @onclick="ApproveAppointment">Approve</button>
+							<button class="btn btn-danger" @onclick="RejectAppointment">Reject</button>
+						}
+						<button class="btn btn-secondary" @onclick="CloseModals">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show"></div>
+	}
 
-<!-- Manage Existing Appointment Modal -->
-@if (ShowManageAppointmentModal && SelectedAppointment != null)
-{
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Manage Appointment</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>Appointment:</strong> @SelectedAppointment.Title</p>
-                    <p><strong>Start:</strong> @SelectedAppointment.Start.ToString("yyyy-MM-dd HH:mm")</p>
-                    <p><strong>End:</strong> @SelectedAppointment.End.ToString("yyyy-MM-dd HH:mm")</p>
-                    <p><strong>Status:</strong> @(SelectedAppointment.IsApproved ? "Approved" : SelectedAppointment.IsRejected ? "Rejected" : "Pending")</p>
-                </div>
-                <div class="modal-footer">
-                    @if (IsAdmin) // Show buttons only for admins
-                    {
-                        <button class="btn btn-success" @onclick="ApproveAppointment">Approve</button>
-                        <button class="btn btn-danger" @onclick="RejectAppointment">Reject</button>
-                    }
-                    <button class="btn btn-secondary" @onclick="CloseModals">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-}
+	<!-- Book New Appointment Modal -->
+	@if (ShowNewBookingModal && BookingModel != null)
+	{
+		<div class="modal show d-block" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Book New Appointment</h5>
+						<button type="button" class="btn-close" @onclick="CloseModals"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label for="appointmentTitle" class="form-label">Title</label>
+							<input id="appointmentTitle" class="form-control" @bind-value="BookingModel.Title" required />
+						</div>
+						<div class="mb-3">
+							<label for="appointmentTitle" class="form-label">Notes</label>
+							<input type="text" id="appointmentNotes" class="form-control" @bind-value="BookingModel.Notes" required />
+						</div>
+						<div class="mb-3">
+							<label for="doctorSelect" class="form-label">Doctor</label>
+							<select id="doctorSelect" class="form-select" @bind="BookingModel.DoctorId" required>
+								<option value="">-- Select Doctor --</option>
+								@foreach (var doctor in AvailableDoctors)
+								{
+									<option value="@doctor.AppUserId">@doctor.FirstName @doctor.LastName</option>
+								}
+							</select>
+						</div>
+						<p><strong>Start:</strong> @BookingModel.Start.ToString("yyyy-MM-dd HH:mm")</p>
+						<p><strong>End:</strong> @BookingModel.End.ToString("yyyy-MM-dd HH:mm")</p>
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" @onclick="BookAppointment" disabled="@(!CanBook)">Book</button>
+						<button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show"></div>
+	}
 
-<!-- Book New Appointment Modal -->
-@if (ShowNewBookingModal && BookingModel != null)
-{
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Book New Appointment</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="appointmentTitle" class="form-label">Title</label>
-                        <input id="appointmentTitle" class="form-control" @bind-value="BookingModel.Title" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="appointmentTitle" class="form-label">Notes</label>
-                        <input type="text" id="appointmentNotes" class="form-control" @bind-value="BookingModel.Notes" required />
-                    </div>
-                    <div class="mb-3">
-                        <label for="doctorSelect" class="form-label">Doctor</label>
-                        <select id="doctorSelect" class="form-select" @bind="BookingModel.DoctorId" required>
-                            <option value="">-- Select Doctor --</option>
-                            @foreach (var doctor in AvailableDoctors)
-                            {
-                                <option value="@doctor.AppUserId">@doctor.FirstName @doctor.LastName</option>
-                            }
-                        </select>
-                    </div>
-                    <p><strong>Start:</strong> @BookingModel.Start.ToString("yyyy-MM-dd HH:mm")</p>
-                    <p><strong>End:</strong> @BookingModel.End.ToString("yyyy-MM-dd HH:mm")</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" @onclick="BookAppointment" disabled="@(!CanBook)">Book</button>
-                    <button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-}
-
-@if (ShowAdminBlockModal && AdminBlockModel != null)
-{
-    <div class="modal show d-block" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Block Slot (Admin)</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Title</label>
-                        <input class="form-control" @bind-value="AdminBlockModel.Title" required />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Start</label>
-                        <input type="datetime-local" class="form-control"
-                               @bind-value="AdminBlockModel.Start"
-                               min="@GetTodayAt(9, 0)" max="@GetTodayAt(17, 0)" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">End</label>
-                        <input type="datetime-local" class="form-control"
-                               @bind-value="AdminBlockModel.End"
-                               min="@GetTodayAt(9, 30)" max="@GetTodayAt(17, 0)" />
-                    </div>
-                    @if (!string.IsNullOrEmpty(AdminBlockError))
-                    {
-                        <div class="alert alert-danger">@AdminBlockError</div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" @onclick="BookAdminBlockSlot" disabled="@(!CanBlockSlot)">Block Slot</button>
-                    <button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal-backdrop fade show"></div>
-}
+	@if (ShowAdminBlockModal && AdminBlockModel != null)
+	{
+		<div class="modal show d-block" tabindex="-1">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Block Slot (Admin)</h5>
+						<button type="button" class="btn-close" @onclick="CloseModals"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label">Title</label>
+							<input class="form-control" @bind-value="AdminBlockModel.Title" required />
+						</div>
+						<div class="mb-3">
+							<label class="form-label">Start</label>
+							<input type="datetime-local" class="form-control"
+								   @bind-value="AdminBlockModel.Start"
+								   min="@GetTodayAt(9, 0)" max="@GetTodayAt(17, 0)" />
+						</div>
+						<div class="mb-3">
+							<label class="form-label">End</label>
+							<input type="datetime-local" class="form-control"
+								   @bind-value="AdminBlockModel.End"
+								   min="@GetTodayAt(9, 30)" max="@GetTodayAt(17, 0)" />
+						</div>
+						@if (!string.IsNullOrEmpty(AdminBlockError))
+						{
+							<div class="alert alert-danger">@AdminBlockError</div>
+						}
+					</div>
+					<div class="modal-footer">
+						<button class="btn btn-primary" @onclick="BookAdminBlockSlot" disabled="@(!CanBlockSlot)">Block Slot</button>
+						<button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal-backdrop fade show"></div>
+	}
+</div>
 
 @code {
-    List<DepartmentDto> Departments = new();
-    int? SelectedDepartmentId;
-    string currentDepartmentName = string.Empty;
-    List<AppointmentDto> appointments = new();
-    private IEnumerable<string> views = new[] { "Day", "Week", "Month" };
-    bool ShowManageAppointmentModal = false; // Renamed from ShowModal
-    bool ShowNewBookingModal = false;       // New state variable for booking modal
-    AppointmentDto BookingModel = new();
-    private AppointmentDto? SelectedAppointment;
-    List<DoctorDto> AvailableDoctors = new();
-    private UserInfo? CurrentUser;
-    private bool IsAuthenticated = false;
-    private bool _isLoading = false;
-    string? PatientId;
-    string? UserId;
-    bool IsAdmin;
-    bool IsDoctor;
-    bool IsPatient;
-    //Admin block slots 
-    bool ShowAdminBlockModal = false;
-    AppointmentDto AdminBlockModel = new();
-    string? AdminBlockError = null;
+	List<DepartmentDto> Departments = new();
+	int? SelectedDepartmentId;
+	string currentDepartmentName = string.Empty;
+	List<AppointmentDto> appointments = new();
+	private IEnumerable<string> views = new[] { "Day", "Week", "Month" };
+	bool ShowManageAppointmentModal = false; // Renamed from ShowModal
+	bool ShowNewBookingModal = false;       // New state variable for booking modal
+	AppointmentDto BookingModel = new();
+	private AppointmentDto? SelectedAppointment;
+	List<DoctorDto> AvailableDoctors = new();
+	private UserInfo? CurrentUser;
+	private bool IsAuthenticated = false;
+	private bool _isLoading = false;
+	string? PatientId;
+	string? UserId;
+	bool IsAdmin;
+	bool IsDoctor;
+	bool IsPatient;
+	//Admin block slots
+	bool ShowAdminBlockModal = false;
+	AppointmentDto AdminBlockModel = new();
+	string? AdminBlockError = null;
 
-    protected override async Task OnInitializedAsync()
-    {
-        CurrentUser = await AuthClientService.GetCurrentUserAsync();
-        if (CurrentUser != null)
-        {
-            IsAuthenticated = true;
-        }
+	protected override async Task OnInitializedAsync()
+	{
+		CurrentUser = await AuthClientService.GetCurrentUserAsync();
+		if (CurrentUser != null)
+		{
+			IsAuthenticated = true;
+		}
 
-        if (IsAuthenticated && CurrentUser != null)
-        {
-            UserId = CurrentUser.Id;
-            PatientId = UserId; // PatientId is the same as UserId for a patient
-            IsAdmin = CurrentUser.Roles.Contains("Admin");
-            IsDoctor = CurrentUser.Roles.Contains("Doctor");
-            IsPatient = CurrentUser.Roles.Contains("Patient");
+		if (IsAuthenticated && CurrentUser != null)
+		{
+			UserId = CurrentUser.Id;
+			PatientId = UserId; // PatientId is the same as UserId for a patient
+			IsAdmin = CurrentUser.Roles.Contains("Admin");
+			IsDoctor = CurrentUser.Roles.Contains("Doctor");
+			IsPatient = CurrentUser.Roles.Contains("Patient");
 
-            if (IsAdmin)
-            {
-                var url = $"api/appointment/admin/{UserId}/office";
-                var adminOffice = await Http.GetFromJsonAsync<AdminOfficeDto>(url);
-                if (adminOffice != null)
-                {
-                    SelectedDepartmentId = adminOffice.OfficeId;
-                    currentDepartmentName = adminOffice.OfficeName;
-                }
-            }
-            else if (IsDoctor)
-            {
-                var doctorOffice = await Http.GetFromJsonAsync<DoctorOfficeDto>($"api/appointment/doctor/{UserId}/office");
-                if (doctorOffice != null)
-                {
-                    SelectedDepartmentId = doctorOffice.OfficeId;
-                    currentDepartmentName = doctorOffice.OfficeName;
-                }
-            }
-        }
-        Departments = await Http.GetFromJsonAsync<List<DepartmentDto>>($"api/office/all") ?? new();
-        if (SelectedDepartmentId != null || IsPatient)
-        {
-            await LoadAppointmentsAsync();
-        }
-    }
+			if (IsAdmin)
+			{
+				var url = $"api/appointment/admin/{UserId}/office";
+				var adminOffice = await Http.GetFromJsonAsync<AdminOfficeDto>(url);
+				if (adminOffice != null)
+				{
+					SelectedDepartmentId = adminOffice.OfficeId;
+					currentDepartmentName = adminOffice.OfficeName;
+				}
+			}
+			else if (IsDoctor)
+			{
+				var doctorOffice = await Http.GetFromJsonAsync<DoctorOfficeDto>($"api/appointment/doctor/{UserId}/office");
+				if (doctorOffice != null)
+				{
+					SelectedDepartmentId = doctorOffice.OfficeId;
+					currentDepartmentName = doctorOffice.OfficeName;
+				}
+			}
+		}
+		Departments = await Http.GetFromJsonAsync<List<DepartmentDto>>($"api/office/all") ?? new();
+		if (SelectedDepartmentId != null || IsPatient)
+		{
+			await LoadAppointmentsAsync();
+		}
+	}
 
-    private async Task OnDepartmentChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var deptId))
-        {
-            SelectedDepartmentId = deptId;
-            var selectedDept = Departments.FirstOrDefault(d => d.Id == deptId);
-            currentDepartmentName = selectedDept?.Name ?? string.Empty; // Handle null case for selectedDept
-            await LoadAppointmentsAsync();
-        }
-        else
-        {
-            SelectedDepartmentId = null;
-            currentDepartmentName = string.Empty; // Clear department name if no department is selected
-            appointments = new();
-        }
-    }
+	private async Task OnDepartmentChanged(ChangeEventArgs e)
+	{
+		if (int.TryParse(e.Value?.ToString(), out var deptId))
+		{
+			SelectedDepartmentId = deptId;
+			var selectedDept = Departments.FirstOrDefault(d => d.Id == deptId);
+			currentDepartmentName = selectedDept?.Name ?? string.Empty; // Handle null case for selectedDept
+			await LoadAppointmentsAsync();
+		}
+		else
+		{
+			SelectedDepartmentId = null;
+			currentDepartmentName = string.Empty; // Clear department name if no department is selected
+			appointments = new();
+		}
+	}
 
-    private async Task ApproveAppointment()
-    {
-        if (SelectedAppointment != null)
-        {
-            var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/approve?adminId={UserId}", null);
-            if (response.IsSuccessStatusCode)
-            {
-                SelectedAppointment.IsApproved = true;
-                SelectedAppointment.IsRejected = false;
-                StateHasChanged(); // Notify Blazor to re-render the UI
-            }
-            else
-            {
-                Console.WriteLine("Failed to approve appointment.");
-            }
+	private async Task ApproveAppointment()
+	{
+		if (SelectedAppointment != null)
+		{
+			var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/approve?adminId={UserId}", null);
+			if (response.IsSuccessStatusCode)
+			{
+				SelectedAppointment.IsApproved = true;
+				SelectedAppointment.IsRejected = false;
+				StateHasChanged(); // Notify Blazor to re-render the UI
+			}
+			else
+			{
+				Console.WriteLine("Failed to approve appointment.");
+			}
 
-            CloseModals(); // Use the new common close method
-            await LoadAppointmentsAsync(); // Refresh appointments
-        }
-    }
+			CloseModals(); // Use the new common close method
+			await LoadAppointmentsAsync(); // Refresh appointments
+		}
+	}
 
-    private async Task RejectAppointment()
-    {
-        if (SelectedAppointment != null)
-        {
-            var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/reject?adminId={UserId}", null);
-            if (response.IsSuccessStatusCode)
-            {
-                SelectedAppointment.IsRejected = true;
-                SelectedAppointment.IsApproved = false;
-                StateHasChanged(); // Notify Blazor to re-render the UI
-            }
-            else
-            {
-                Console.WriteLine("Failed to reject appointment.");
-            }
+	private async Task RejectAppointment()
+	{
+		if (SelectedAppointment != null)
+		{
+			var response = await Http.PostAsync($"api/appointment/{SelectedAppointment.Id}/reject?adminId={UserId}", null);
+			if (response.IsSuccessStatusCode)
+			{
+				SelectedAppointment.IsRejected = true;
+				SelectedAppointment.IsApproved = false;
+				StateHasChanged(); // Notify Blazor to re-render the UI
+			}
+			else
+			{
+				Console.WriteLine("Failed to reject appointment.");
+			}
 
-            CloseModals(); // Use the new common close method
-            await LoadAppointmentsAsync(); // Refresh appointments
-        }
-    }
+			CloseModals(); // Use the new common close method
+			await LoadAppointmentsAsync(); // Refresh appointments
+		}
+	}
 
-    private async Task LoadAppointmentsAsync()
-    {
-        if (SelectedDepartmentId == null) return;
-        appointments = await Http.GetFromJsonAsync<List<AppointmentDto>>($"api/appointment/department/{SelectedDepartmentId}") ?? new();
-    }
+	private async Task LoadAppointmentsAsync()
+	{
+		if (SelectedDepartmentId == null) return;
+		appointments = await Http.GetFromJsonAsync<List<AppointmentDto>>($"api/appointment/department/{SelectedDepartmentId}") ?? new();
+	}
 
-    private void OnRenderAppointment(SchedulerAppointmentRenderEventArgs<AppointmentDto> args)
-    {
-        if (args.Data.IsRejected)
-        {
-            args.Attributes["style"] = "background-color: #851d22; color: white; border-radius: 4px; padding: 4px;";
-        }
-        else if (args.Data.IsApproved)
-        {
-            args.Attributes["style"] = "background-color: #167533; color: white; border-radius: 4px; padding: 4px;";
-        }
-        else
-        {
-            args.Attributes["style"] = "background-color: gray; color: white; border-radius: 4px; padding: 4px;";
-        }
-    }
+	private void OnRenderAppointment(SchedulerAppointmentRenderEventArgs<AppointmentDto> args)
+	{
+		if (args.Data.IsRejected)
+		{
+			args.Attributes["style"] = "background-color: #851d22; color: white; border-radius: 4px; padding: 4px;";
+		}
+		else if (args.Data.IsApproved)
+		{
+			args.Attributes["style"] = "background-color: #167533; color: white; border-radius: 4px; padding: 4px;";
+		}
+		else
+		{
+			args.Attributes["style"] = "background-color: gray; color: white; border-radius: 4px; padding: 4px;";
+		}
+	}
 
-    private void OnSlotRender(SchedulerSlotRenderEventArgs args)
-    {
-        if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
-        {
-            args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
-        }
-        if ((args.View.Text == "Week" || args.View.Text == "Day") && args.Start.Hour >= 9 && args.Start.Hour < 17)
-        {
-            args.Attributes["style"] = "background-color: rgba(200, 240, 255, 0.4);";
-        }
-    }
+	private void OnSlotRender(SchedulerSlotRenderEventArgs args)
+	{
+		if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
+		{
+			args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
+		}
+		if ((args.View.Text == "Week" || args.View.Text == "Day") && args.Start.Hour >= 9 && args.Start.Hour < 17)
+		{
+			args.Attributes["style"] = "background-color: rgba(200, 240, 255, 0.4);";
+		}
+	}
 
-    private void OnAppointmentSelected(SchedulerAppointmentSelectEventArgs<AppointmentDto> args)
-    {
-        SelectedAppointment = args.Data; // Store selected appointment
-        ShowManageAppointmentModal = true; // Show the management modal
-        ShowNewBookingModal = false;      // Ensure booking modal is hidden
-    }
+	private void OnAppointmentSelected(SchedulerAppointmentSelectEventArgs<AppointmentDto> args)
+	{
+		SelectedAppointment = args.Data; // Store selected appointment
+		ShowManageAppointmentModal = true; // Show the management modal
+		ShowNewBookingModal = false;      // Ensure booking modal is hidden
+	}
 
-    private async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
-    {
-        if (SelectedDepartmentId == null) return;
+	private async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+	{
+		if (SelectedDepartmentId == null) return;
 
-        if(IsPatient)
-        {
-            // Fetch available doctors for the selected slot
-            var url = $"api/office/{SelectedDepartmentId}/available-doctors?start={args.Start:o}&end={args.End:o}";
-            AvailableDoctors = await Http.GetFromJsonAsync<List<DoctorDto>>(url) ?? new();
+		if (IsPatient)
+		{
+			// Fetch available doctors for the selected slot
+			var url = $"api/office/{SelectedDepartmentId}/available-doctors?start={args.Start:o}&end={args.End:o}";
+			AvailableDoctors = await Http.GetFromJsonAsync<List<DoctorDto>>(url) ?? new();
 
-            // Prepare the booking model
-            BookingModel = new AppointmentDto
-            {
-                Start = args.Start,
-                End = args.End,
-                OfficeId = SelectedDepartmentId.Value,
-                PatientId = PatientId, // This will be null for Admin/Doctor unless explicitly set for themselves
-                Title = string.Empty, // Initialize title for new booking
-                DoctorId = string.Empty // Initialize DoctorId for new booking
-            };
+			// Prepare the booking model
+			BookingModel = new AppointmentDto
+			{
+				Start = args.Start,
+				End = args.End,
+				OfficeId = SelectedDepartmentId.Value,
+				PatientId = PatientId, // This will be null for Admin/Doctor unless explicitly set for themselves
+				Title = string.Empty, // Initialize title for new booking
+				DoctorId = string.Empty // Initialize DoctorId for new booking
+			};
 
-            SelectedAppointment = null;     // Ensure existing appointment is cleared
-            ShowManageAppointmentModal = false; // Hide the management modal
-            ShowNewBookingModal = true;     // Show the new booking modal
-        }else if(IsAdmin)
-        {
-            AdminBlockModel = new AppointmentDto
-            {
-                Start = args.Start,
-                End = args.End,
-                OfficeId = SelectedDepartmentId.Value,
-                PatientId = UserId, // Admin's user ID
-                Title = string.Empty
-            };
-            AdminBlockError = null;
-            ShowAdminBlockModal = true;
-            ShowManageAppointmentModal = false;
-            ShowNewBookingModal = false;
-            return;
-        }
+			SelectedAppointment = null;     // Ensure existing appointment is cleared
+			ShowManageAppointmentModal = false; // Hide the management modal
+			ShowNewBookingModal = true;     // Show the new booking modal
+		}
+		else if (IsAdmin)
+		{
+			AdminBlockModel = new AppointmentDto
+			{
+				Start = args.Start,
+				End = args.End,
+				OfficeId = SelectedDepartmentId.Value,
+				PatientId = UserId, // Admin's user ID
+				Title = string.Empty
+			};
+			AdminBlockError = null;
+			ShowAdminBlockModal = true;
+			ShowManageAppointmentModal = false;
+			ShowNewBookingModal = false;
+			return;
+		}
 
-    }
+	}
 
-    private async Task BookAdminBlockSlot()
-    {
-        AdminBlockError = null;
+	private async Task BookAdminBlockSlot()
+	{
+		AdminBlockError = null;
 
-        // Validate time range
-        if (AdminBlockModel.Start.TimeOfDay < TimeSpan.FromHours(9) ||
-            AdminBlockModel.End.TimeOfDay > TimeSpan.FromHours(17) ||
-            AdminBlockModel.End <= AdminBlockModel.Start)
-        {
-            AdminBlockError = "Start and End must be between 9:00 and 17:00, and End must be after Start.";
-            return;
-        }
+		// Validate time range
+		if (AdminBlockModel.Start.TimeOfDay < TimeSpan.FromHours(9) ||
+			AdminBlockModel.End.TimeOfDay > TimeSpan.FromHours(17) ||
+			AdminBlockModel.End <= AdminBlockModel.Start)
+		{
+			AdminBlockError = "Start and End must be between 9:00 and 17:00, and End must be after Start.";
+			return;
+		}
 
-        AdminBlockModel.DoctorId = null;
-        AdminBlockModel.Notes = null;
+		AdminBlockModel.DoctorId = null;
+		AdminBlockModel.Notes = null;
 
-        try
-        {
-            var response = await Http.PostAsJsonAsync("api/appointment/admin-block", AdminBlockModel);
-            if (response.IsSuccessStatusCode)
-            {
-                CloseModals();
-                await LoadAppointmentsAsync();
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                AdminBlockError = $"Failed to block slot. {errorContent}";
-            }
-        }
-        catch (Exception ex)
-        {
-            AdminBlockError = $"Error: {ex.Message}";
-        }
-    }
+		try
+		{
+			var response = await Http.PostAsJsonAsync("api/appointment/admin-block", AdminBlockModel);
+			if (response.IsSuccessStatusCode)
+			{
+				CloseModals();
+				await LoadAppointmentsAsync();
+			}
+			else
+			{
+				var errorContent = await response.Content.ReadAsStringAsync();
+				AdminBlockError = $"Failed to block slot. {errorContent}";
+			}
+		}
+		catch (Exception ex)
+		{
+			AdminBlockError = $"Error: {ex.Message}";
+		}
+	}
 
-    private string GetTodayAt(int hour, int minute) =>
-    DateTime.Today.AddHours(hour).AddMinutes(minute).ToString("yyyy-MM-ddTHH:mm");
+	private string GetTodayAt(int hour, int minute) =>
+	DateTime.Today.AddHours(hour).AddMinutes(minute).ToString("yyyy-MM-ddTHH:mm");
 
-    private bool CanBlockSlot =>
-        !string.IsNullOrWhiteSpace(AdminBlockModel.Title)
-        && AdminBlockModel.Start.TimeOfDay >= TimeSpan.FromHours(9)
-        && AdminBlockModel.End.TimeOfDay <= TimeSpan.FromHours(17)
-        && AdminBlockModel.End > AdminBlockModel.Start;
+	private bool CanBlockSlot =>
+		!string.IsNullOrWhiteSpace(AdminBlockModel.Title)
+		&& AdminBlockModel.Start.TimeOfDay >= TimeSpan.FromHours(9)
+		&& AdminBlockModel.End.TimeOfDay <= TimeSpan.FromHours(17)
+		&& AdminBlockModel.End > AdminBlockModel.Start;
 
-    // New common method to close all modals and reset related state
-    private void CloseModals()
-    {
-        ShowManageAppointmentModal = false;
-        ShowNewBookingModal = false;
-        ShowAdminBlockModal = false;
-        SelectedAppointment = null;
-        BookingModel = new(); // Reset booking model
-        AdminBlockModel = new();
-        AvailableDoctors = new(); // Clear available doctors
-        AdminBlockError = null;
-    }
+	// New common method to close all modals and reset related state
+	private void CloseModals()
+	{
+		ShowManageAppointmentModal = false;
+		ShowNewBookingModal = false;
+		ShowAdminBlockModal = false;
+		SelectedAppointment = null;
+		BookingModel = new(); // Reset booking model
+		AdminBlockModel = new();
+		AvailableDoctors = new(); // Clear available doctors
+		AdminBlockError = null;
+	}
 
-    // Checks if the book appointment button should be enabled
-    private bool CanBook => !string.IsNullOrWhiteSpace(BookingModel.Title) && !string.IsNullOrWhiteSpace(BookingModel.DoctorId);
+	// Checks if the book appointment button should be enabled
+	private bool CanBook => !string.IsNullOrWhiteSpace(BookingModel.Title) && !string.IsNullOrWhiteSpace(BookingModel.DoctorId);
 
-    async Task BookAppointment()
-    {
-        if (CurrentUser == null)
-        {
-            // Handle case where user is not logged in or current user info is not available
-            Console.WriteLine("Cannot book appointment: User not authenticated.");
-            // You might want to navigate to login or show an error message here
-            return;
-        }
+	async Task BookAppointment()
+	{
+		if (CurrentUser == null)
+		{
+			// Handle case where user is not logged in or current user info is not available
+			Console.WriteLine("Cannot book appointment: User not authenticated.");
+			// You might want to navigate to login or show an error message here
+			return;
+		}
 
-        // Ensure patientId is set correctly based on current user or if it's an admin booking for a patient
-        BookingModel.PatientId = CurrentUser.Id; // Assuming current user is the patient booking
+		// Ensure patientId is set correctly based on current user or if it's an admin booking for a patient
+		BookingModel.PatientId = CurrentUser.Id; // Assuming current user is the patient booking
 
-        try
-        {
-            var response = await Http.PostAsJsonAsync("api/appointment/book", BookingModel);
-            if (response.IsSuccessStatusCode)
-            {
-                Console.WriteLine("Appointment booked successfully!");
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Failed to book appointment. Status: {response.StatusCode}, Error: {errorContent}");
-                // You might want to display a user-friendly error message
-            }
-        }
-        catch (HttpRequestException ex)
-        {
-            Console.WriteLine($"HTTP Request Error during booking: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An unexpected error occurred during booking: {ex.Message}");
-        }
+		try
+		{
+			var response = await Http.PostAsJsonAsync("api/appointment/book", BookingModel);
+			if (response.IsSuccessStatusCode)
+			{
+				Console.WriteLine("Appointment booked successfully!");
+			}
+			else
+			{
+				var errorContent = await response.Content.ReadAsStringAsync();
+				Console.WriteLine($"Failed to book appointment. Status: {response.StatusCode}, Error: {errorContent}");
+				// You might want to display a user-friendly error message
+			}
+		}
+		catch (HttpRequestException ex)
+		{
+			Console.WriteLine($"HTTP Request Error during booking: {ex.Message}");
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"An unexpected error occurred during booking: {ex.Message}");
+		}
 
-        CloseModals(); // Use the new common close method
-        await LoadAppointmentsAsync(); // Refresh appointments
-    }
+		CloseModals(); // Use the new common close method
+		await LoadAppointmentsAsync(); // Refresh appointments
+	}
 }
