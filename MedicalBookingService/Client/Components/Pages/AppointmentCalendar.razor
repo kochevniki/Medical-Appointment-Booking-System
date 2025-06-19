@@ -156,10 +156,6 @@
 								   @bind-value="AdminBlockModel.Start"
 								   min="@GetTodayAt(9, 0)" max="@GetTodayAt(17, 0)" />
 						</div>
-						@if (!string.IsNullOrEmpty(TimeValidationMessage))
-						{
-							<div class="alert alert-warning">@TimeValidationMessage</div>
-						}
 
 						<div class="mb-3">
 							<label class="form-label">End</label>
@@ -430,8 +426,19 @@
 		}
 	}
 
-	private string GetTodayAt(int hour, int minute) =>
-	DateTime.Today.AddHours(hour).AddMinutes(minute).ToString("yyyy-MM-ddTHH:mm");
+	private string GetTodayAt(int hour, int minute)
+	{
+		//return DateTime.Today.AddHours(hour).AddMinutes(minute).ToString("yyyy-MM-ddTHH:mm");
+		return new DateTime(
+				AdminBlockModel.End.Year,
+				AdminBlockModel.End.Month,
+				AdminBlockModel.End.Day,
+				0,
+				0,
+				0
+			).AddHours(hour).AddMinutes(minute).ToString("yyyy-MM-ddTHH:mm");
+	}
+	
 
 	private bool CanBlockSlot =>
 		!string.IsNullOrWhiteSpace(AdminBlockModel.Title)
