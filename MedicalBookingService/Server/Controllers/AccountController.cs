@@ -113,7 +113,7 @@ namespace MedicalBookingService.Server.Controllers
 
         [HttpGet("patient-profile/{userId}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> GetPatientProfile(string userId)
+        public async Task<ActionResult<PatientProfileDto>> GetPatientProfile(string userId)
         {
             var profile = await _db.PatientProfiles
                 .Include(p => p.AppUser)
@@ -122,8 +122,18 @@ namespace MedicalBookingService.Server.Controllers
             if (profile == null)
                 return NotFound();
 
-            // Optionally, you may want to map to a DTO to avoid exposing sensitive fields like SSN
-            return Ok(profile);
+            var patientProfile = new PatientProfileDto
+            {
+                AppUserId = profile.AppUserId,
+                FirstName = profile.FirstName,
+                LastName = profile.LastName,
+                SSN = profile.SSN,
+                DateOfBirth = profile.DateOfBirth,
+                Address = profile.Address,
+                GovernmentIdUrl = profile.GovernmentIdUrl,
+                InsuranceCardUrl = profile.InsuranceCardUrl
+            };
+            return Ok(patientProfile);
         }
 
     }

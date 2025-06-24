@@ -168,6 +168,9 @@
                         }
                     </div>
                     <div class="modal-footer">
+                        <button class="btn btn-info" @onclick="ViewPatientProfile" disabled="@string.IsNullOrEmpty(AdminBlockModel.PatientId)">
+                            View Patient Profile
+                        </button>
                         <button class="btn btn-primary" @onclick="BookAdminBlockSlot" disabled="@(!CanBlockSlot)">Block Slot</button>
                         <button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
                     </div>
@@ -485,6 +488,14 @@
             if (AdminBlockModel.End <= AdminBlockModel.Start)
                 return "End time must be after start time.";
             return null;
+        }
+    }
+
+    private void ViewPatientProfile()
+    {
+        if (!string.IsNullOrEmpty(AdminBlockModel.PatientId))
+        {
+            Navigation.NavigateTo($"api/account/patient-profile/{AdminBlockModel.PatientId}");
         }
     }
 

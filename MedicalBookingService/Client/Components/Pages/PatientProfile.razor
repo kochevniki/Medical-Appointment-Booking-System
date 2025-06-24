@@ -1,10 +1,67 @@
 ﻿@page "/patient-profile/{UserId}"
+@using MedicalBookingService.Shared.Models.DTOs
+@inject HttpClient Http
+
+<h3 class="text-center mb-4">Patient Profile</h3>
+
+@if (Patient == null)
+{
+    <div class="alert alert-danger">Unable to load patient profile.</div>
+}
+else
+{
+    <div class="card shadow-sm p-4">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>First Name:</strong> @Patient.FirstName
+            </div>
+            <div class="col-md-6">
+                <strong>Last Name:</strong> @Patient.LastName
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <strong>Date of Birth:</strong> @Patient.DateOfBirth.ToString("MMMM dd, yyyy")
+            </div>
+            <div class="col-md-6">
+                <strong>SSN:</strong> @MaskSsn(Patient.SSN)
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <strong>Address:</strong> @Patient.Address
+        </div>
+
+        @if (!string.IsNullOrEmpty(Patient.GovernmentIdUrl))
+        {
+            <div class="mb-2">
+                <strong>Government ID:</strong>
+                <a href="@Patient.GovernmentIdUrl" target="_blank">View</a>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Patient.InsuranceCardUrl))
+        {
+            <div class="mb-2">
+                <strong>Insurance Card:</strong>
+                <a href="@Patient.InsuranceCardUrl" target="_blank">View</a>
+            </div>
+        }
+    </div>
+}
+
+
 @code {
     [Parameter]
     public string UserId { get; set; }
+    PatientProfileDto Patient;
 
     protected override async Task OnInitializedAsync()
     {
-        // Load patient data using UserId
+        Patient = await Http.GetFromJsonAsync<PatientProfileDto>($"api/account/patient-profile/{UserId}");
     }
+
+    private string MaskSsn(string ssn) =>
+    string.IsNullOrEmpty(ssn) || ssn.Length < 4 ? "••••" : $"•••-••-{ssn[^4..]}";
 }
