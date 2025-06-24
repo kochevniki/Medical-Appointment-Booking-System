@@ -3,6 +3,7 @@ using MedicalBookingService.Server.Models;
 using MedicalBookingService.Server.Services;
 using MedicalBookingService.Shared.Models;
 using MedicalBookingService.Shared.Models.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -110,6 +111,20 @@ namespace MedicalBookingService.Server.Controllers
             return Ok();
         }
 
+        [HttpGet("patient-profile/{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetPatientProfile(string userId)
+        {
+            var profile = await _db.PatientProfiles
+                .Include(p => p.AppUser)
+                .FirstOrDefaultAsync(p => p.AppUserId == userId);
+
+            if (profile == null)
+                return NotFound();
+
+            // Optionally, you may want to map to a DTO to avoid exposing sensitive fields like SSN
+            return Ok(profile);
+        }
 
     }
 }

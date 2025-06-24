@@ -1,0 +1,10 @@
+﻿@page "/patient-profile/{UserId}"
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load patient data using UserId
+    }
+}
