@@ -1,64 +1,63 @@
 ﻿using Box.V2;
 using Box.V2.Auth;
 using Box.V2.Config;
-using Box.V2.JWTAuth;
 using Box.V2.Models;
+using MedicalBookingService.Server.Data;
+using MedicalBookingService.Server.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace MedicalBookingService.Shared.Services
 {
     public class FileService
     {
-        private readonly BoxClient _boxClient;
+        private readonly IConfiguration _config;
+        private readonly ApplicationDbContext _context;
         private readonly string _folderId;
 
-        public FileService(IConfiguration config)
+        public FileService(IConfiguration config, ApplicationDbContext context)
         {
-            var boxConfig = new BoxConfig(
-                config["Box:ClientId"],
-                config["Box:ClientSecret"],
-                new Uri(config["Box:RedirectUri"]));
-
-            var session = new OAuthSession(config["Box:AccessToken"], null, 3600, "bearer");
-            _boxClient = new BoxClient(boxConfig, session);
-
-            _folderId = config["Box:FolderId"]; // Box folder where files will be stored
+            _config = config;
+            _context = context;
+            _folderId = config["Box:FolderId"]!;
         }
 
         public async Task<string> UploadAsync(string fileName, Stream fileStream, string contentType)
         {
-            string[] folders = fileName.Split('/');
-            // Step 1: Ensure "patients" folder exists
-            var patientsFolder = await GetOrCreateFolderAsync(folders[0], _folderId);
-
-            // Step 2: Ensure userId folder exists under "patients"
-            var userFolder = await GetOrCreateFolderAsync(folders[1], patientsFolder.Id);
-
-            var request = new BoxFileRequest
+            return await ExecuteWithValidToken(async client =>
             {
-                Name = folders[2],
-                Parent = new BoxRequestEntity { Id = userFolder.Id }
-            };
+                string[] folders = fileName.Split('/');
+                var patientsFolder = await GetOrCreateFolderAsync(client, folders[0], _folderId);
+                var userFolder = await GetOrCreateFolderAsync(client, folders[1], patientsFolder.Id);
 
-            var file = await _boxClient.FilesManager.UploadAsync(request, fileStream);
-            return file.Id; // or file.SharedLink?.Url if you create a shared link
+                var request = new BoxFileRequest
+                {
+                    Name = folders[2],
+                    Parent = new BoxRequestEntity { Id = userFolder.Id }
+                };
+
+                var file = await client.FilesManager.UploadAsync(request, fileStream);
+                return file.Id;
+            });
         }
 
         public async Task<Stream?> DownloadAsync(string fileId)
         {
-            var stream = await _boxClient.FilesManager.DownloadAsync(fileId);
-            return stream;
+            return await ExecuteWithValidToken(client => client.FilesManager.DownloadAsync(fileId));
         }
 
         public async Task DeleteAsync(string fileId)
         {
-            await _boxClient.FilesManager.DeleteAsync(fileId);
+            await ExecuteWithValidToken(async client =>
+            {
+                await client.FilesManager.DeleteAsync(fileId);
+                return true; // dummy return value for consistency
+            });
         }
 
-        private async Task<BoxFolder> GetOrCreateFolderAsync(string folderName, string parentId)
+        private async Task<BoxFolder> GetOrCreateFolderAsync(BoxClient client, string folderName, string parentId)
         {
-            // Check if folder exists
-            var items = await _boxClient.FoldersManager.GetFolderItemsAsync(parentId, 1000);
+            var items = await client.FoldersManager.GetFolderItemsAsync(parentId, 1000);
             var folder = items.Entries
                 .OfType<BoxFolder>()
                 .FirstOrDefault(f => f.Name.Equals(folderName, StringComparison.OrdinalIgnoreCase));
@@ -66,14 +65,82 @@ namespace MedicalBookingService.Shared.Services
             if (folder != null)
                 return folder;
 
-            // Create folder
             var request = new BoxFolderRequest
             {
                 Name = folderName,
                 Parent = new BoxRequestEntity { Id = parentId }
             };
 
-            return await _boxClient.FoldersManager.CreateAsync(request);
+            return await client.FoldersManager.CreateAsync(request);
+        }
+
+        private async Task<BoxClient> CreateBoxClientAsync(OAuthSession session)
+        {
+            var config = new BoxConfig(
+                _config["Box:ClientId"]!,
+                _config["Box:ClientSecret"]!,
+                new Uri(_config["Box:RedirectUri"]!)
+            );
+            return new BoxClient(config, session);
+        }
+
+        private async Task<T> ExecuteWithValidToken<T>(Func<BoxClient, Task<T>> apiCall)
+        {
+            var tokenEntry = await _context.BoxTokens.FirstOrDefaultAsync();
+            if (tokenEntry == null)
+                throw new InvalidOperationException("Box tokens not found in database.");
+
+            var session = new OAuthSession(
+                tokenEntry.AccessToken,
+                tokenEntry.RefreshToken,
+                3600,
+                "bearer"
+            );
+
+            var client = await CreateBoxClientAsync(session);
+
+            try
+            {
+                var result = await apiCall(client);
+
+
+                Console.WriteLine($"API call successful1111111: {client.Auth.Session.RefreshToken}");
+                Console.WriteLine($"API call successful2222222: {client.Auth.Session.AccessToken}");
+                
+
+
+                // Optionally: Check if client.Auth.Session has changed and update DB
+                if (client.Auth.Session.AccessToken != tokenEntry.AccessToken ||
+                    client.Auth.Session.RefreshToken != tokenEntry.RefreshToken)
+                {
+                    tokenEntry.AccessToken = client.Auth.Session.AccessToken;
+                    tokenEntry.RefreshToken = client.Auth.Session.RefreshToken;
+                    tokenEntry.UpdatedAt = DateTime.UtcNow;
+                    _context.BoxTokens.Update(tokenEntry);
+                    await _context.SaveChangesAsync();
+                }
+
+                return result;
+            }
+            catch (Box.V2.Exceptions.BoxSessionInvalidatedException)
+            {
+                // Refresh token
+                var newSession = await client.Auth.RefreshAccessTokenAsync(tokenEntry.RefreshToken);
+
+                // Update DB
+                tokenEntry.AccessToken = newSession.AccessToken;
+                tokenEntry.RefreshToken = newSession.RefreshToken;
+                tokenEntry.UpdatedAt = DateTime.UtcNow;
+
+                _context.BoxTokens.Update(tokenEntry);
+                await _context.SaveChangesAsync();
+
+                // Rebuild client with fresh tokens
+                var newClient = await CreateBoxClientAsync(newSession);
+
+                // Retry the API call once
+                return await apiCall(newClient);
+            }
         }
     }
 }

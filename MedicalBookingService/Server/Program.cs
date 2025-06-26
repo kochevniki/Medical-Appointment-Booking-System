@@ -101,6 +101,36 @@ namespace MedicalBookingService.Server
             app.UseAuthorization();     // Determines if the user can access a resource
 
             app.MapControllers(); // Maps API endpoints to their respective controllers
+
+
+
+
+            //using (var scope = app.Services.CreateScope())
+            //{
+            //    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            //    // Optional: ensure DB is created
+            //    context.Database.EnsureCreated();
+
+            //    // Check if data already exists
+            //    if (!context.BoxTokens.Any())
+            //    {
+            //        var token = new BoxToken
+            //        {
+            //            RefreshToken = null,
+            //            AccessToken = "a9NheJ4hNHoBSLc1jDD86CzsqKKKrJin",
+            //            UpdatedAt = new DateTime(2025, 6, 25, 21, 45, 0)
+            //        };
+
+            //        context.BoxTokens.Add(token);
+            //        context.SaveChanges();
+            //    }
+            //}
+
+
+
+
+
             app.Run(); // Runs the application
         }
 

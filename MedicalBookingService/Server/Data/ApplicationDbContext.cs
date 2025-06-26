@@ -15,10 +15,12 @@ namespace MedicalBookingService.Server.Data
         public DbSet<AdminProfile> AdminProfiles { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<DepartmentScheduleConfig> ScheduleConfigs { get; set; }
+        public DbSet<BoxToken> BoxTokens { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
+            builder.HasDefaultSchema("dbo");
             base.OnModelCreating(builder);
 
             builder.Entity<PatientProfile>()
