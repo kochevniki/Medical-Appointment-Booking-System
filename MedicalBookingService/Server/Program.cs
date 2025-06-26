@@ -117,8 +117,8 @@ namespace MedicalBookingService.Server
             //    {
             //        var token = new BoxToken
             //        {
-            //            RefreshToken = null,
-            //            AccessToken = "a9NheJ4hNHoBSLc1jDD86CzsqKKKrJin",
+            //            RefreshToken = "N3aY306eUeGEcc3rpzgb5vDb8YRCZi53jk5SBdBKpmvZxkbA62UjqDHgrOiZgZqz",
+            //            AccessToken = "KKOxZbIlqqyyV3eooCl1aD6vfnWpUnyP",
             //            UpdatedAt = new DateTime(2025, 6, 25, 21, 45, 0)
             //        };
 

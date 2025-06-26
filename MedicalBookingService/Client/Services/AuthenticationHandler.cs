@@ -31,15 +31,30 @@ namespace MedicalBookingService.Client.Services
                 var response = await base.SendAsync(request, cancellationToken);
 
                 // Redirect if authentication fails
+                //if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
+                //{
+                //    var currentUri = _navigationManager.ToAbsoluteUri(_navigationManager.Uri);
+                //    if (!currentUri.LocalPath.EndsWith("/login", StringComparison.OrdinalIgnoreCase) &&
+                //        !request.RequestUri.LocalPath.Contains("/api/auth/login", StringComparison.OrdinalIgnoreCase))
+                //    {
+                //        _navigationManager.NavigateTo("/login", forceLoad: true);
+                //    }
+                //}
+
                 if (response.StatusCode == HttpStatusCode.Unauthorized || response.StatusCode == HttpStatusCode.Forbidden)
                 {
                     var currentUri = _navigationManager.ToAbsoluteUri(_navigationManager.Uri);
-                    if (!currentUri.LocalPath.EndsWith("/login", StringComparison.OrdinalIgnoreCase) &&
+                    var path = currentUri.LocalPath.ToLowerInvariant();
+
+                    var allowAnonymousPaths = new[] { "/login", "/reset-password", "/signup", "/" }; // add any others
+
+                    if (!allowAnonymousPaths.Any(p => path.StartsWith(p)) &&
                         !request.RequestUri.LocalPath.Contains("/api/auth/login", StringComparison.OrdinalIgnoreCase))
                     {
                         _navigationManager.NavigateTo("/login", forceLoad: true);
                     }
                 }
+
 
                 return response;
             }

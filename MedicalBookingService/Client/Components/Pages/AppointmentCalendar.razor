@@ -76,6 +76,9 @@
                     <div class="modal-footer">
                         @if (IsAdmin) // Show buttons only for admins
                         {
+                            <button class="btn btn-info" @onclick="ViewPatientProfile" disabled="@string.IsNullOrEmpty(SelectedAppointment.PatientId)">
+                                View Patient Profile
+                            </button>
                             <button class="btn btn-success" @onclick="ApproveAppointment">Approve</button>
                             <button class="btn btn-danger" @onclick="RejectAppointment">Reject</button>
                         }
@@ -168,9 +171,6 @@
                         }
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-info" @onclick="ViewPatientProfile" disabled="@string.IsNullOrEmpty(AdminBlockModel.PatientId)">
-                            View Patient Profile
-                        </button>
                         <button class="btn btn-primary" @onclick="BookAdminBlockSlot" disabled="@(!CanBlockSlot)">Block Slot</button>
                         <button class="btn btn-secondary" @onclick="CloseModals">Cancel</button>
                     </div>
@@ -493,9 +493,9 @@
 
     private void ViewPatientProfile()
     {
-        if (!string.IsNullOrEmpty(AdminBlockModel.PatientId))
+        if (!string.IsNullOrEmpty(SelectedAppointment.PatientId))
         {
-            Navigation.NavigateTo($"api/account/patient-profile/{AdminBlockModel.PatientId}");
+            Navigation.NavigateTo($"/patient-profile/{SelectedAppointment.PatientId}");
         }
     }
 

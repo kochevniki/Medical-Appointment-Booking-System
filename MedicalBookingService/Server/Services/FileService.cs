@@ -103,12 +103,6 @@ namespace MedicalBookingService.Shared.Services
             {
                 var result = await apiCall(client);
 
-
-                Console.WriteLine($"API call successful1111111: {client.Auth.Session.RefreshToken}");
-                Console.WriteLine($"API call successful2222222: {client.Auth.Session.AccessToken}");
-                
-
-
                 // Optionally: Check if client.Auth.Session has changed and update DB
                 if (client.Auth.Session.AccessToken != tokenEntry.AccessToken ||
                     client.Auth.Session.RefreshToken != tokenEntry.RefreshToken)

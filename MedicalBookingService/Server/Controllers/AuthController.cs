@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace MedicalBookingService.Server.Controllers;
 
@@ -67,7 +68,11 @@ public class AuthController : ControllerBase
             return Ok(); // Don't reveal user existence
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        var callbackUrl = Url.Action("ResetPassword", "Account", new { token, email = user.Email }, Request.Scheme);
+        //var callbackUrl = Url.Action("ResetPassword", "Auth", new { token, email = user.Email }, Request.Scheme);
+
+        var encodedToken = WebUtility.UrlEncode(token);
+        var frontendBaseUrl = "https://localhost:8080"; // Ideally pulled from config
+        var callbackUrl = $"{frontendBaseUrl}/reset-password?token={encodedToken}&email={user.Email}";
 
         await _emailService.SendEmailAsync(user.Email, "Reset Password",
             $"Reset your password by clicking [here]({callbackUrl})");
