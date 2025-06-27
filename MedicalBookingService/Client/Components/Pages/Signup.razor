@@ -105,10 +105,12 @@
 	private string _successMessage = string.Empty;
 	private IBrowserFile? _govIdFile;
 	private IBrowserFile? _insuranceCardFile;
+	private DotNetObjectReference<Signup>? _dotNetHelper;
 
 	protected override void OnInitialized()
 	{
 		_model.DateOfBirth = DateTime.Today;
+		_dotNetHelper = DotNetObjectReference.Create(this);
 	}
 
 	private void StoreGovIdFile(InputFileChangeEventArgs e)
@@ -221,9 +223,16 @@
 		if (firstRender)
 		{
 			await JS.InvokeVoidAsync("signupEnhancements.initSSNFields");
-			await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete");
+			await JS.InvokeVoidAsync("signupEnhancements.initAddressAutocomplete", _dotNetHelper);
 			await JS.InvokeVoidAsync("signupEnhancements.initPhoneNumberField");
 		}
+	}
+
+	[JSInvokable]
+	public async Task UpdateAddress(string address)
+	{
+		_model.Address = address;
+		await InvokeAsync(StateHasChanged);
 	}
 
 	class UploadResult
@@ -234,5 +243,10 @@
 	private async Task ScrollToTop(EditContext context)
 	{
 		await JS.InvokeVoidAsync("window.scrollTo", new object[] { 0, 0 });
+	}
+
+	public void Dispose()
+	{
+		_dotNetHelper?.Dispose();
 	}
 }

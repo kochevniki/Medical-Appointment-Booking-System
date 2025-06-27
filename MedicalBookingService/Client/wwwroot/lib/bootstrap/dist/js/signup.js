@@ -39,7 +39,7 @@
         });
     },
 
-    initAddressAutocomplete: async function () {
+    initAddressAutocomplete: async function (dotNetHelper) {
         const input = document.getElementById('usps-address');
         if (!input) return;
 
@@ -62,6 +62,10 @@
                     const place = autocomplete.getPlace();
                     console.log('Selected address:', place.formatted_address);
                     // Optionally update hidden fields or extra data
+                    if (place.formatted_address) { // <-- Important check
+                        // Invoke the C# method with the selected address
+                        dotNetHelper.invokeMethodAsync('UpdateAddress', place.formatted_address);
+                    }
                 });
             };
             document.head.appendChild(script);
