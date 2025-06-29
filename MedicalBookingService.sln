@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MedicalBookingService", "MedicalBookingService", "{02557233-350C-B6A0-27CC-D187EF5659DE}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "MedicalBookingService\Client\Client.csproj", "{4D528B46-96A2-4405-87B4-BF8A5A5AAEBC}"
 EndProject
