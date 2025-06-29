@@ -127,8 +127,10 @@ namespace MedicalBookingService.Server.Controllers
                 AppUserId = profile.AppUserId,
                 FirstName = profile.FirstName,
                 LastName = profile.LastName,
+                Email = profile.AppUser.Email,
                 SSN = profile.SSN,
                 DateOfBirth = profile.DateOfBirth,
+                PhoneNumber = profile.AppUser.PhoneNumber,
                 Address = profile.Address,
                 GovernmentIdUrl = profile.GovernmentIdUrl,
                 InsuranceCardUrl = profile.InsuranceCardUrl

@@ -53,7 +53,6 @@
                          AppointmentRender="OnRenderAppointment">
             <RadzenDayView />
             <RadzenWeekView />
-            <RadzenMonthView />
         </RadzenScheduler>
     }
 
@@ -74,7 +73,7 @@
                         <p><strong>Status:</strong> @(SelectedAppointment.IsApproved ? "Approved" : SelectedAppointment.IsRejected ? "Rejected" : "Pending")</p>
                     </div>
                     <div class="modal-footer">
-                        @if (IsAdmin) // Show buttons only for admins
+                        @if (IsAdmin && !SelectedAppointment.IsBlocked && !SelectedAppointment.IsApproved && !SelectedAppointment.IsRejected) // Show buttons only for admins
                         {
                             <button class="btn btn-info" @onclick="ViewPatientProfile" disabled="@string.IsNullOrEmpty(SelectedAppointment.PatientId)">
                                 View Patient Profile
@@ -186,7 +185,7 @@
     int? SelectedDepartmentId;
     string currentDepartmentName = string.Empty;
     List<AppointmentDto> appointments = new();
-    private IEnumerable<string> views = new[] { "Day", "Week", "Month" };
+    private IEnumerable<string> views = new[] { "Day", "Week" };
     bool ShowManageAppointmentModal = false; // Renamed from ShowModal
     bool ShowNewBookingModal = false;       // New state variable for booking modal
     AppointmentDto BookingModel = new();
@@ -360,10 +359,6 @@
 
     private void OnSlotRender(SchedulerSlotRenderEventArgs args)
     {
-        if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
-        {
-            args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
-        }
         if ((args.View.Text == "Week" || args.View.Text == "Day") && args.Start.Hour >= 9 && args.Start.Hour < 17)
         {
             args.Attributes["style"] = "background-color: rgba(200, 240, 255, 0.4);";

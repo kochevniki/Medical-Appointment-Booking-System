@@ -1,5 +1,6 @@
 ﻿using MedicalBookingService.Server.Services;
 using MedicalBookingService.Shared.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MedicalBookingService.Server.Controllers
@@ -18,6 +19,7 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("upload")]
+        [Authorize(Roles = "Patient")]
         public async Task<IActionResult> Upload(IFormFile file, [FromForm] string userId)
         {
             if (file == null || file.Length == 0)
@@ -29,14 +31,28 @@ namespace MedicalBookingService.Server.Controllers
             return Ok(new { url });
         }
 
-        [HttpGet("download/{fileName}")]
-        public async Task<IActionResult> Download(string fileName)
+        [HttpGet("preview/{fileId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<string>> GetPreviewUrl(string fileId)
         {
-            var stream = await _fileService.DownloadAsync(fileName);
-            if (stream == null)
-                return NotFound();
+            try
+            {
+                var url = await _fileService.GetPreviewUrlAsync(fileId);
+                return Ok(url);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-            return File(stream, "application/octet-stream", fileName);
+        [HttpGet("download/{fileId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Download(string fileId)
+        {
+            var stream = await _fileService.DownloadAsync(fileId);
+            if (stream == null) return NotFound();
+            return File(stream, "application/octet-stream", $"document_{fileId}.pdf");
         }
 
         [HttpDelete("delete/{fileName}")]

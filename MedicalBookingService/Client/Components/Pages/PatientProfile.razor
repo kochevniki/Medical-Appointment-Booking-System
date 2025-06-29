@@ -2,66 +2,95 @@
 @using MedicalBookingService.Shared.Models.DTOs
 @inject HttpClient Http
 
-<h3 class="text-center mb-4">Patient Profile</h3>
+<div class="mt-4">
+	<h3 class="text-center mb-4">Patient Profile</h3>
 
-@if (Patient == null)
-{
-    <div class="alert alert-danger">Unable to load patient profile.</div>
-}
-else
-{
-    <div class="card shadow-sm p-4">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <strong>First Name:</strong> @Patient.FirstName
-            </div>
-            <div class="col-md-6">
-                <strong>Last Name:</strong> @Patient.LastName
-            </div>
-        </div>
+	@if (Patient == null)
+	{
+		<div class="alert alert-danger">Unable to load patient profile.</div>
+	}
+	else
+	{
+		<div class="card shadow-sm p-4">
+			<div class="row mb-3">
+				<div class="col-md-6">
+					<strong>First Name:</strong> @Patient.FirstName
+				</div>
+				<div class="col-md-6">
+					<strong>Last Name:</strong> @Patient.LastName
+				</div>
+			</div>
 
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <strong>Date of Birth:</strong> @Patient.DateOfBirth.ToString("MMMM dd, yyyy")
-            </div>
-            <div class="col-md-6">
-                <strong>SSN:</strong> @MaskSsn(Patient.SSN)
-            </div>
-        </div>
+			<div class="row mb-3">
+				<div class="col-md-6">
+					<strong>Date of Birth:</strong> @Patient.DateOfBirth.ToString("MMMM dd, yyyy")
+				</div>
+				<div class="col-md-6">
+					<strong>SSN:</strong> @MaskSsn(Patient.SSN)
+				</div>
+			</div>
 
-        <div class="mb-3">
-            <strong>Address:</strong> @Patient.Address
-        </div>
+			<div class="row mb-3">
+				<div class="col-md-6">
+					<strong>Phone Number:</strong> @Patient.PhoneNumber
+				</div>
+				<div class="col-md-6">
+					<strong>Address:</strong> @Patient.Address
+				</div>
+			</div>
 
-        @if (!string.IsNullOrEmpty(Patient.GovernmentIdUrl))
-        {
-            <div class="mb-2">
-                <strong>Government ID:</strong>
-                <a href="@Patient.GovernmentIdUrl" target="_blank">View</a>
-            </div>
-        }
+			<div class="mb-3">
+				<strong>Email:</strong> @Patient.Email
+			</div>
 
-        @if (!string.IsNullOrEmpty(Patient.InsuranceCardUrl))
-        {
-            <div class="mb-2">
-                <strong>Insurance Card:</strong>
-                <a href="@Patient.InsuranceCardUrl" target="_blank">View</a>
-            </div>
-        }
-    </div>
-}
+			@if (!string.IsNullOrEmpty(GovernmentIdPreviewUrl))
+			{
+				<div class="mb-2">
+					<strong>Government ID:</strong>
+					<a href="@GovernmentIdPreviewUrl" target="_blank">View</a> |
+					<a href="@GovernmentIdDownloadUrl" target="_blank">Download</a>
+				</div>
+			}
 
+			@if (!string.IsNullOrEmpty(InsuranceCardPreviewUrl))
+			{
+				<div class="mb-2">
+					<strong>Insurance Card:</strong>
+					<a href="@InsuranceCardPreviewUrl" target="_blank">View</a> |
+					<a href="@InsuranceCardDownloadUrl" target="_blank">Download</a>
+				</div>
+			}
+		</div>
+	}
+</div>
 
 @code {
-    [Parameter]
-    public string UserId { get; set; }
-    PatientProfileDto Patient;
+	[Parameter]
+	public string UserId { get; set; }
+	PatientProfileDto Patient;
+	private string? GovernmentIdPreviewUrl;
+	private string? GovernmentIdDownloadUrl;
 
-    protected override async Task OnInitializedAsync()
-    {
-        Patient = await Http.GetFromJsonAsync<PatientProfileDto>($"api/account/patient-profile/{UserId}");
-    }
+	private string? InsuranceCardPreviewUrl;
+	private string? InsuranceCardDownloadUrl;
 
-    private string MaskSsn(string ssn) =>
-    string.IsNullOrEmpty(ssn) || ssn.Length < 4 ? "••••" : $"•••-••-{ssn[^4..]}";
+	protected override async Task OnInitializedAsync()
+	{
+		Patient = await Http.GetFromJsonAsync<PatientProfileDto>($"api/account/patient-profile/{UserId}");
+
+		if (!string.IsNullOrEmpty(Patient.GovernmentIdUrl))
+		{
+			GovernmentIdPreviewUrl = await Http.GetStringAsync($"api/file/preview/{Patient.GovernmentIdUrl}");
+			GovernmentIdDownloadUrl = $"api/files/download/{Patient.GovernmentIdUrl}";
+		}
+
+		if (!string.IsNullOrEmpty(Patient.InsuranceCardUrl))
+		{
+			InsuranceCardPreviewUrl = await Http.GetStringAsync($"api/file/preview/{Patient.InsuranceCardUrl}");
+			InsuranceCardDownloadUrl = $"api/files/download/{Patient.InsuranceCardUrl}";
+		}
+	}
+
+	private string MaskSsn(string ssn) =>
+	string.IsNullOrEmpty(ssn) || ssn.Length < 4 ? "••••" : $"•••-••-{ssn[^4..]}";
 }

@@ -41,6 +41,22 @@ namespace MedicalBookingService.Shared.Services
             });
         }
 
+        public async Task<string> GetPreviewUrlAsync(string fileId)
+        {
+            return await ExecuteWithValidToken(async client =>
+            {
+                var sharedLinkRequest = new BoxSharedLinkRequest
+                {
+                    Access = BoxSharedLinkAccessType.open // "People with the link"
+                };
+
+                var file = await client.FilesManager.CreateSharedLinkAsync(fileId, sharedLinkRequest);
+                return file.SharedLink?.Url ?? throw new Exception("Failed to generate shared link.");
+            });
+        }
+
+
+
         public async Task<Stream?> DownloadAsync(string fileId)
         {
             return await ExecuteWithValidToken(client => client.FilesManager.DownloadAsync(fileId));

@@ -15,6 +15,8 @@ namespace MedicalBookingService.Shared.Models.DTOs
         public DateTime DateOfBirth { get; set; }
         public string SSN { get; set; } // Consider masking or omitting for security
         public string Address { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Email { get; set; }
         public string? GovernmentIdUrl { get; set; }
         public string? InsuranceCardUrl { get; set; }
     }

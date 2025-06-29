@@ -32,8 +32,10 @@ namespace MedicalBookingService.Shared.Models
 
         [Required]
         public string Address { get; set; } = string.Empty;
-        public string? GovernmentIdUrl { get; set; }
-        public string? InsuranceCardUrl { get; set; }
+        [Required]
+        public string GovernmentIdUrl { get; set; }
+        [Required]
+        public string InsuranceCardUrl { get; set; }
 
     }
 }
