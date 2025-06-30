@@ -47,8 +47,7 @@
 			{
 				<div class="mb-2">
 					<strong>Government ID:</strong>
-					<a href="@GovernmentIdPreviewUrl" target="_blank">View</a> |
-					<a href="@GovernmentIdDownloadUrl" target="_blank">Download</a>
+					<a href="@GovernmentIdPreviewUrl" target="_blank">View and Download</a>
 				</div>
 			}
 
@@ -56,8 +55,7 @@
 			{
 				<div class="mb-2">
 					<strong>Insurance Card:</strong>
-					<a href="@InsuranceCardPreviewUrl" target="_blank">View</a> |
-					<a href="@InsuranceCardDownloadUrl" target="_blank">Download</a>
+					<a href="@InsuranceCardPreviewUrl" target="_blank">View and Download</a>
 				</div>
 			}
 		</div>
@@ -69,10 +67,8 @@
 	public string UserId { get; set; }
 	PatientProfileDto Patient;
 	private string? GovernmentIdPreviewUrl;
-	private string? GovernmentIdDownloadUrl;
 
 	private string? InsuranceCardPreviewUrl;
-	private string? InsuranceCardDownloadUrl;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -81,13 +77,11 @@
 		if (!string.IsNullOrEmpty(Patient.GovernmentIdUrl))
 		{
 			GovernmentIdPreviewUrl = await Http.GetStringAsync($"api/file/preview/{Patient.GovernmentIdUrl}");
-			GovernmentIdDownloadUrl = $"api/files/download/{Patient.GovernmentIdUrl}";
 		}
 
 		if (!string.IsNullOrEmpty(Patient.InsuranceCardUrl))
 		{
 			InsuranceCardPreviewUrl = await Http.GetStringAsync($"api/file/preview/{Patient.InsuranceCardUrl}");
-			InsuranceCardDownloadUrl = $"api/files/download/{Patient.InsuranceCardUrl}";
 		}
 	}
 

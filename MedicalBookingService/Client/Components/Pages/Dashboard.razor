@@ -1,50 +1,88 @@
 ﻿@page "/dashboard"
 @using MedicalBookingService.Client.Services
 @using MedicalBookingService.Shared.Models
+@using MedicalBookingService.Shared.Models.DTOs
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject AuthClientService AuthClientService
 
-<div class="mt-4">
-	<h3>Dashboard</h3>
-	@if (!IsAuthenticated)
-	{
-		<p>Pulling your information</p>
-	}
-	else if (IsAuthenticated)
-	{
-		<p>User is authenticated.</p>
-		@if (UserRoles.Contains("Admin"))
-		{
-			<p>Welcome Admin! You can manage appointments.</p>
-		}
-		else if (UserRoles.Contains("Doctor"))
-		{
-			<p>Welcome Doctor! You can view your schedule.</p>
-		}
-		else if (UserRoles.Contains("Patient"))
-		{
-			<p>Welcome Patient! You can request an appointment.</p>
-		}
-		else
-		{
-			<p>Unknown role.</p>
-		}
-	}
-	else
-	{
-		<p>User is NOT authenticated.</p>
-	}
+<div class="d-flex flex-column align-items-center mt-4">
+    <h3>Dashboard</h3>
+    @if (!IsAuthenticated)
+    {
+        <p>Currently you are not logged in.</p>
+        <p>Please login or create new account to request appointment.</p>
+    }
+    else if (IsAuthenticated)
+    {
+        <p>User is authenticated.</p>
+        @if (UserRoles.Contains("Admin"))
+        {
+            <p>Welcome Admin! You can manage appointments.</p>
+        }
+        else if (UserRoles.Contains("Doctor"))
+        {
+            <p>Welcome Doctor! You can view your schedule.</p>
+        }
+        else if (UserRoles.Contains("Patient"))
+        {
+            <p>Welcome Patient! You can request an appointment.</p>
+        }
+        else
+        {
+            <p>Unknown role.</p>
+        }
+    }
+    else
+    {
+        <p>User is NOT authenticated.</p>
+    }
 </div>
+
+@if (!IsAuthenticated || UserRoles.Contains("Patient"))
+{
+    <div class="d-flex flex-column align-items-center mt-4">
+        <h4>Available Offices</h4>
+        @if (Offices == null)
+        {
+            <p>Loading offices...</p>
+        }
+        else if (Offices.Count == 0)
+        {
+            <p>No offices available.</p>
+        }
+        else
+        {
+            <div class="w-50">
+                <ul class="list-group">
+                    @foreach (var office in Offices)
+                    {
+                        <li class="list-group-item text-center">@office.Name</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}
 
 @code {
 
 	private UserInfo? CurrentUser;
 	private bool IsAuthenticated = false;
 	private List<string> UserRoles = new();
+	List<DepartmentDto> Offices = new();
 
 	protected override async Task OnInitializedAsync()
 	{
+		Offices = new List<DepartmentDto>
+		{
+			new DepartmentDto { Id = 1, Name = "Primary Care" },
+			new DepartmentDto { Id = 2, Name = "Pediatrics" },
+			new DepartmentDto { Id = 3, Name = "Dental" },
+			new DepartmentDto { Id = 4, Name = "Physical Therapy" },
+			new DepartmentDto { Id = 5, Name = "Eye Exam" }
+		};
+
 		CurrentUser = await AuthClientService.GetCurrentUserAsync();
 
 		if (CurrentUser != null)
@@ -52,5 +90,7 @@
 			IsAuthenticated = true;
 			UserRoles = CurrentUser.Roles;
 		}
+
+
 	}
 }

@@ -76,12 +76,12 @@
 						</div>
 
 						<div class="col-md-6 mb-3">
-							<label>Upload Government ID (optional)</label>
+							<label>Upload Government ID</label>
 							<InputFile OnChange="StoreGovIdFile" accept=".jpg,.jpeg,.png,.pdf" />
 						</div>
 
 						<div class="col-md-6 mb-3">
-							<label>Upload Insurance Card (optional)</label>
+							<label>Upload Insurance Card</label>
 							<InputFile OnChange="StoreInsuranceCardFile" accept=".jpg,.jpeg,.png,.pdf" />
 						</div>
 					</div>
@@ -142,6 +142,20 @@
 	private async Task HandleSignup()
 	{
 		_errorMessage = null;
+
+		// Custom file validation BEFORE sending to server
+		if (_govIdFile == null)
+		{
+			_errorMessage = "Government ID is required.";
+			await ScrollToTop(null);
+			return;
+		}
+		if (_insuranceCardFile == null)
+		{
+			_errorMessage = "Insurance Card is required.";
+			await ScrollToTop(null);
+			return;
+		}
 
 		try
 		{

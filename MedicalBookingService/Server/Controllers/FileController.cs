@@ -19,7 +19,6 @@ namespace MedicalBookingService.Server.Controllers
         }
 
         [HttpPost("upload")]
-        [Authorize(Roles = "Patient")]
         public async Task<IActionResult> Upload(IFormFile file, [FromForm] string userId)
         {
             if (file == null || file.Length == 0)
@@ -44,15 +43,6 @@ namespace MedicalBookingService.Server.Controllers
             {
                 return BadRequest(ex.Message);
             }
-        }
-
-        [HttpGet("download/{fileId}")]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Download(string fileId)
-        {
-            var stream = await _fileService.DownloadAsync(fileId);
-            if (stream == null) return NotFound();
-            return File(stream, "application/octet-stream", $"document_{fileId}.pdf");
         }
 
         [HttpDelete("delete/{fileName}")]
